@@ -1,6 +1,6 @@
 {
   "name": "cozy-read-aloud-web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,8 +17,11 @@
     "pdfjs-dist": "6.4.299"
   },
   "devDependencies": {
+    "@tesseract.js-data/chi_sim": "1.0.0",
+    "@tesseract.js-data/eng": "1.0.0",
     "esbuild": "0.25.10",
     "pdf-lib": "1.17.1",
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "tesseract.js": "7.0.0"
   }
 }

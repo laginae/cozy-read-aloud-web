@@ -1,4 +1,9 @@
 const pairs = [
+  ['图片与扫描页 OCR','OCR for images and scanned pages'],
+  ['启用本机 OCR（按需加载资源）','Enable local OCR (load resources on demand)'],
+  ['请先在设置中启用本机 OCR。','Enable local OCR in settings first.'],
+  ['OCR 每次只打开一个图片文件。','OCR opens one image at a time.'],
+  ['OCR 窗口无法打开，请刷新后重试。','Could not open OCR. Refresh and retry.'],
   ['PDF 组件无法加载，请检查连接并刷新页面后重试。', 'The PDF component could not load. Check your connection and refresh.'],
   ['文本超过 250,000 字符，请分成较小文件。', 'Text exceeds 250,000 characters. Split it into smaller files.'],
   ['仅支持 Markdown、PDF、HTML 和 TXT 文件。', 'Only Markdown, PDF, HTML and TXT files are supported.'],
@@ -107,7 +112,7 @@ export function english(text) {
 export function installInterfaceLanguage(initial = 'zh-CN') {
   let language = initial;
   const originals = new WeakMap();
-  const excluded = node => node.parentElement?.closest('#reader, #paste-text, #document-title, .document-button span, #outline button:not(.outline-play)');
+  const excluded = node => node.parentElement?.closest('#reader, #paste-text, #document-title, .cozy-ocr-form, .document-button span, #outline button:not(.outline-play)');
   function update() {
     document.documentElement.lang = language;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

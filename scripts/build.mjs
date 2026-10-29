@@ -1,7 +1,9 @@
 import { build } from "esbuild";
 import { cp, mkdir, readdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import buildOcrResources from './ocr-resources.cjs';
 await mkdir("dist/assets", { recursive: true });
+const ocrResources = buildOcrResources(process.cwd(), path.resolve('dist/ocr-assets/resources.json'));
 const chunks = path.resolve("dist/chunks");
 if (!chunks.startsWith(path.resolve("dist") + path.sep)) throw new Error("Invalid build path");
 await mkdir(chunks, { recursive: true });
@@ -20,6 +22,7 @@ const result = await build({
   metafile: true,
   minify: true,
   legalComments: "eof",
+  define: { __COZY_OCR_HASH__: JSON.stringify(ocrResources.sha256) },
 });
 await mkdir("output", { recursive: true });
 await writeFile("output/build-meta.json", JSON.stringify(result.metafile, null, 2));

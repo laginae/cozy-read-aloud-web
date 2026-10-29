@@ -1038,3 +1038,14 @@ body {
     transition: none !important;
   }
 }
+.cozy-ocr-modal { width: min(720px, 94vw); max-height: 85dvh; overflow-y: auto; box-sizing: border-box; }
+.cozy-ocr-form { padding: 16px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.cozy-ocr-form h2 { font-size: 20px; }
+.cozy-ocr-fields { display: flex; flex-wrap: wrap; gap: 16px; margin-block: 12px; }
+.cozy-ocr-fields label { display: grid; gap: 6px; flex: 1; min-width: 100px; }
+.cozy-ocr-fields input, .cozy-ocr-fields select { width: 100%; min-width: 0; box-sizing: border-box; }
+.cozy-ocr-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 12px; }
+.cozy-ocr-actions button { min-height: 40px; padding: 6px 12px; }
+.cozy-ocr-preview { display: block; width: 100%; height: 30dvh; min-height: 160px; resize: vertical; box-sizing: border-box; line-height: 1.6; }
+.cozy-ocr-filename { overflow-wrap: anywhere; }
+.cozy-ocr-note { font-size: 13px; color: var(--text-muted, #666); }

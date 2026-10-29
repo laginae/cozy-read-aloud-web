@@ -15,6 +15,7 @@ function visit(name) {
 }
 visit("dist/app.js");
 for (const name of initial) {
+  assert.ok(!Object.keys(metadata.outputs[name].inputs).some(input => /portable-ocr|ocr-dialog|tesseract/.test(input)), 'OCR implementation leaked into initial modules');
   assert.ok(!Object.keys(metadata.outputs[name].inputs).some(input => input.startsWith("node_modules/pdfjs-dist/")), "PDF runtime leaked into initial modules");
 }
 assert.ok(Object.keys(metadata.outputs).some(name => !initial.has(name) && Object.keys(metadata.outputs[name].inputs).some(input => input.startsWith("node_modules/pdfjs-dist/"))));

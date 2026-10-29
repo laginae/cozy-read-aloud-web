@@ -2,7 +2,7 @@
 
 <img src="public/assets/cozy-cat.png" alt="Cozy Read Aloud" width="88">
 
-无需安装 Obsidian，在浏览器中朗读 Markdown、文本型 PDF、本地 HTML 和 TXT。选中文字后起读，在原阅读视图中跟随高亮。
+无需安装 Obsidian，在浏览器中朗读 Markdown、文本型 PDF、本地 HTML 和 TXT；可选本机 OCR 还支持图片文字和扫描 PDF 单页，校对后朗读。选中文字后起读，在阅读视图中跟随高亮。
 
 **[打开网页版](https://laginae.github.io/cozy-read-aloud-web/)** · [English](README.md) · [隐私说明](PRIVACY.md)
 
@@ -53,7 +53,9 @@ PDF 解析组件只在打开 PDF 时加载。PDF 累计提取文字最多 1,000,
 
 “停止”也会取消当前导入及同批剩余文件。打开新文件、切换已有文档或确认粘贴内容后，旧导入不会覆盖当前文档。预览不代表解析完成，不会把不完整全文用于播放或导出。
 
-尚不包含 OCR、扫描/加密 PDF 处理、PDF 表单、网页 URL 抓取、Copilot 直连、SAPI/OneCore/Edge 本地程序、离线安装。复杂 PDF 字体、公式、跨栏及旋转文字仍需要更广泛验证。高亮为段落级，并非逐词同步。
+**本机 OCR 默认关闭。** 在设置中启用后点击扫描图标，打开 PDF/PNG/JPEG/WebP，只识别指定单页，在结果框中校对、选择文字后朗读。约 10 MB 的识别资源包仅在点击识别时加载，并校验哈希；图片不上传，结束、取消、转入后台均释放工作进程。在线音色仍会发送朗读文字。[详细边界](docs/local-ocr.md)。
+
+尚不包含加密 PDF 解锁、PDF 表单、网页 URL 抓取、Copilot 直连、SAPI/OneCore/Edge 本地程序、离线安装。OCR 不理解图片或公式，也不提供扫描原图高亮；复杂 PDF 字体、公式、跨栏及旋转文字仍需要更广泛验证。高亮为段落级，并非逐词同步。
 
 HTML 会移除脚本、表单、图片、iframe、样式和外部链接目标，保留可阅读的基本内容。页面进入后台后会暂停，不承诺锁屏连续播放。正文、密钥和音频缓存只保留在页面内存，刷新后不保留。
 

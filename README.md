@@ -2,7 +2,7 @@
 
 <img src="public/assets/cozy-cat.png" alt="Cozy Read Aloud" width="88">
 
-Read Markdown, text-based PDFs, local HTML and plain text in your browser, without installing Obsidian. Select a passage, listen, and follow its highlight in the original reading view.
+Read Markdown, text-based PDFs, local HTML and plain text in your browser, without installing Obsidian. Optional local OCR also reads printed text from images and individual scanned PDF pages after review. Select a passage, listen, and follow its highlight in the reading view.
 
 **[Open the web app](https://laginae.github.io/cozy-read-aloud-web/)** · [简体中文](README.zh-CN.md) · [Privacy](PRIVACY.md)
 
@@ -47,7 +47,8 @@ Export is limited to **40 segments, 8,000 characters and five minutes** per oper
 - Text files: at most 1 MiB / 250,000 characters. PDFs: at most 30 MiB / 120 pages.
 - PDF code loads only when you open a PDF. Extraction is limited to 1,000,000 text characters across the document and 50,000 text-content items on one page. Over-limit documents are refused rather than partially narrated. These are post-extraction bounds, not a guarantee against every resource-heavy file.
 - Stop cancels the current import and remaining files in its batch. Opening another file, switching to an existing document, or confirming pasted text prevents an older import from replacing the new document. Preview does not enable incomplete full-document reading or export.
-- Scanned/password-protected PDFs, OCR, PDF forms, webpage-URL fetching, direct Copilot access, SAPI/OneCore/Edge executables and offline installation are not included.
+- Optional OCR is off by default: enable it in settings, choose the scan icon, open a PDF/PNG/JPEG/WebP, recognize one page, and review the editable result. The approximately 10 MB worker/model resource pack loads only when recognition starts, is hash-checked, and never sends document pixels to a server. Recognition workers terminate after completion, cancellation or backgrounding. Online voices still send the text you read. [OCR details](docs/local-ocr.md).
+- Password-protected PDFs, PDF forms, webpage-URL fetching, direct Copilot access, SAPI/OneCore/Edge executables and offline installation are not included. OCR is not precise source-image highlighting or mathematical/handwriting understanding.
 - HTML is sanitized into a readable document; scripts, frames, forms, images, styling and external link targets are removed.
 - Highlighting is passage-level, not word-synchronized. Complex columns, mathematical fonts and rotated text still need broader testing.
 - Backgrounding the page pauses playback. Uninterrupted lock-screen playback is not promised.

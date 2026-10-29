@@ -30,6 +30,7 @@ jobs:
           npm start > /tmp/cozy-web.log 2>&1 &
           for attempt in $(seq 1 30); do curl -fsS http://127.0.0.1:5186/ >/dev/null && break || sleep 1; done
           npm run test:browser
+          OCR_TEST_URL=http://127.0.0.1:5186/ node scripts/check-ocr-browser.mjs
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:

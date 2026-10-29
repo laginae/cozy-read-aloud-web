@@ -26,6 +26,7 @@ import {
   RotateCcw,
   RotateCw,
   Trash2,
+  ScanText,
 } from "lucide";
 import { ReaderPlayer } from "./player.js";
 import { capturePdfSelection } from "./pdf-selection.js";
@@ -43,6 +44,7 @@ import {
   viewportRectangle,
 } from "./documents.js";
 const icons = {
+  ScanText,
   FolderOpen,
   ClipboardPaste,
   SlidersHorizontal,
@@ -456,6 +458,8 @@ for (const event of ["wheel", "touchstart", "pointerdown"])
   $("reader").addEventListener(event, () => { state.followUntil = Date.now() + 4000; state.followKey = ""; }, { passive: true });
 async function importFiles(files) {
   const incoming = [...files].slice(0, 8);
+  const image = incoming.find(file => /\.(png|jpe?g|webp)$/i.test(file.name));
+  if (image) { $("file-input").value=''; if (incoming.length > 1) notify('OCR 每次只打开一个图片文件。'); await openOcr(image); return; }
   cancelImport();
   player.stop();
   const controller = new AbortController();
@@ -638,6 +642,22 @@ function clearKey() {
 }
 $("import").onclick = $("empty-import").onclick = () => $("file-input").click();
 $("file-input").onchange = (e) => importFiles(e.target.files);
+let closeOcr, ocrSequence=0;
+async function openOcr(file) {
+  const sequence=++ocrSequence;
+  if (!$("ocr-enabled").checked) { notify('请先在设置中启用本机 OCR。'); $("settings-dialog").showModal(); return; }
+  if (state.docs.length >= 8) { notify('当前最多同时打开 8 个文件。'); return; }
+  cancelImport(); abortExport(); player.stop(); closeOcr?.();
+  const {openOcrDialog}=await import('./ocr-dialog.js');
+  if (!$("ocr-enabled").checked || sequence!==ocrSequence) return;
+  const closeThis=openOcrDialog(file,async text=>{ if (state.docs.length >= 8) {notify('当前最多同时打开 8 个文件。');return;}
+    $("scope").value='all'; addDocument(textDocument(text,`${file.name} (OCR)`,'txt')); play(); },()=>{if(closeOcr===closeThis)closeOcr=null;});
+  closeOcr=closeThis;
+}
+$("ocr-open").onclick=()=>{if(!$("ocr-enabled").checked){notify('请先在设置中启用本机 OCR。');$("settings-dialog").showModal();}else $("ocr-input").click();};
+$("ocr-input").onchange=e=>{const file=e.target.files[0];e.target.value='';if(file)void openOcr(file).catch(()=>notify('OCR 窗口无法打开，请刷新后重试。'));};
+$("ocr-enabled").onchange=()=>{if(!$("ocr-enabled").checked){ocrSequence++;closeOcr?.();}};
+window.addEventListener('pagehide',()=>{ocrSequence++;closeOcr?.();});
 $("paste").onclick = () => $("paste-dialog").showModal();
 $("paste-confirm").onclick = () => {
   const text = $("paste-text").value;

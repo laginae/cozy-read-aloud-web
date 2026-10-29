@@ -1,1 +1,3 @@
-* -text
+src/portable-ocr.cjs text eol=lf
+src/portable-ocr-form.cjs text eol=lf
+scripts/ocr-resources.cjs text eol=lf

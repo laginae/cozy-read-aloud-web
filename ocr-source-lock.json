@@ -1,0 +1,7 @@
+{
+  "scope": "Identical portable OCR sources in the web and mobile repositories",
+  "files": {
+    "portable-ocr.cjs": "858eabf82573eef82075b69ba049c7e102e413211932f0d7749c6efcd383b7be",
+    "portable-ocr-form.cjs": "a6894b6dd7c2b143128a057675ea17783beb560ca256b7bbce4ac12d3462a301"
+  }
+}

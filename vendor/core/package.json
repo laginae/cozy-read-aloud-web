@@ -1,0 +1,30 @@
+{
+  "name": "@laginae/note-reader-core",
+  "version": "0.2.2",
+  "description": "Platform-neutral reading algorithms shared by Note and PDF Voice Reader plugins.",
+  "license": "MIT",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./academic-speech": "./src/academic-speech.js",
+    "./pdf-layout": "./src/pdf-layout.js",
+    "./playback-queue": "./src/playback-queue.js",
+    "./reading-position": "./src/reading-position.js",
+    "./semantic-chunker": "./src/semantic-chunker.js",
+    "./task-state": "./src/task-state.js",
+    "./text-cleaning": "./src/text-cleaning.js"
+  },
+  "files": [
+    "index.js",
+    "src"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "test": "node --test test/*.test.cjs",
+    "check:mobile": "node scripts/check-mobile-boundary.cjs",
+    "prepack": "npm test && npm run check:mobile"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

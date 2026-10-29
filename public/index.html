@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self' https://openrouter.ai; worker-src 'self' blob:; media-src 'self' blob:; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#17766d" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Cozy Read Aloud</title>
+    <link rel="icon" href="./assets/cozy-cat.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <button
+        class="icon-button mobile-only"
+        id="menu-toggle"
+        aria-label="文档与大纲"
+        aria-expanded="false"
+        title="文档与大纲"
+      >
+        <i data-lucide="panel-left"></i>
+      </button>
+      <a class="brand" href="./" aria-label="Cozy Read Aloud"
+        ><img src="./assets/cozy-cat.png" width="46" height="46" alt="" /><span
+          >Cozy <strong>Read Aloud</strong><small>WEB · 原型</small></span
+        ></a
+      >
+      <div class="header-actions">
+        <button
+          class="icon-button"
+          id="export-open"
+          aria-label="导出音频"
+          title="导出音频"
+        >
+          <i data-lucide="download"></i>
+        </button>
+        <button class="command primary" id="import">
+          <i data-lucide="folder-open"></i><span>打开文件</span></button
+        ><button
+          class="icon-button"
+          id="paste"
+          aria-label="粘贴文字"
+          title="粘贴文字"
+        >
+          <i data-lucide="clipboard-paste"></i></button
+        ><button
+          class="icon-button"
+          id="settings-open"
+          aria-label="朗读设置"
+          title="朗读设置"
+        >
+          <i data-lucide="sliders-horizontal"></i>
+        </button>
+      </div>
+      <input
+        type="file"
+        id="file-input"
+        multiple
+        accept=".md,.markdown,.txt,.pdf,.html,.htm"
+        hidden
+      />
+    </header>
+    <div class="workspace">
+      <aside class="sidebar" id="sidebar" aria-label="文档与大纲">
+        <div class="sidebar-heading">
+          <h2>本次阅读</h2>
+          <button
+            class="icon-button small"
+            id="sample-open"
+            aria-label="打开示例"
+            title="打开示例"
+          >
+            <i data-lucide="book-open"></i></button
+          ><button
+            class="icon-button small mobile-only"
+            id="menu-close"
+            aria-label="关闭文档与大纲"
+            title="关闭"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="documents" class="document-list"></div>
+        <div class="outline-heading">
+          <h2>文档大纲</h2>
+          <span id="outline-count"></span>
+        </div>
+        <input
+          id="outline-search"
+          type="search"
+          placeholder="搜索标题"
+          aria-label="搜索大纲标题"
+          autocomplete="off"
+        />
+        <nav id="outline" aria-label="文档大纲"></nav>
+        <div class="sidebar-footer">
+          <i data-lucide="shield-check"></i
+          ><span>文件仅保留在本次页面会话</span>
+        </div>
+      </aside>
+      <div class="sidebar-scrim" id="sidebar-scrim" hidden></div>
+      <main class="main">
+        <div class="document-toolbar">
+          <div class="document-heading">
+            <span class="type-badge" id="document-type">MD</span>
+            <h1 id="document-title">清晨散步</h1>
+          </div>
+          <div class="reading-actions">
+            <button
+              id="highlight"
+              class="icon-button"
+              aria-label="段落高亮"
+              title="段落高亮"
+              aria-pressed="true"
+            >
+              <i data-lucide="highlighter"></i></button
+            ><button
+              id="follow"
+              class="icon-button"
+              aria-label="自动跟随"
+              title="自动跟随"
+              aria-pressed="true"
+            >
+              <i data-lucide="arrow-down-up"></i></button
+            ><button
+              id="font-smaller"
+              class="icon-button"
+              aria-label="缩小字号"
+              title="缩小字号"
+            >
+              <i data-lucide="a-arrow-down"></i></button
+            ><button
+              id="font-larger"
+              class="icon-button"
+              aria-label="增大字号"
+              title="增大字号"
+            >
+              <i data-lucide="a-arrow-up"></i>
+            </button>
+          </div>
+        </div>
+        <div class="reading-meta">
+          <span id="document-meta"></span><span id="selection-status"></span>
+        </div>
+        <div id="notice" class="notice" role="status" hidden>
+          <span></span
+          ><button
+            class="icon-button small"
+            id="notice-close"
+            aria-label="关闭提示"
+            title="关闭提示"
+          >
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="reader" class="reader" tabindex="0" aria-label="文档正文">
+          <article id="article" class="prose"></article>
+        </div>
+        <div id="empty" class="empty" hidden>
+          <img
+            src="./assets/cozy-cat.png"
+            width="100"
+            height="100"
+            alt="Cozy"
+          />
+          <h2>准备好下一篇阅读</h2>
+          <button class="command" id="empty-import">
+            <i data-lucide="folder-open"></i>打开文件
+          </button>
+        </div>
+        <section class="player" aria-label="播放控制">
+          <div class="player-summary">
+            <span class="state-dot" id="state-dot"></span
+            ><span id="play-status" role="status">已就绪</span
+            ><output id="audio-time" class="audio-time">0:00 / 0:00</output
+            ><span class="segment-counter" id="segment-counter">0 / 0</span>
+          </div>
+          <input
+            id="progress"
+            class="progress"
+            type="range"
+            min="0"
+            max="1"
+            value="0"
+            step="1"
+            aria-label="朗读分段进度"
+          />
+          <div class="player-row">
+            <div class="transport">
+              <button
+                class="icon-button"
+                id="rewind"
+                aria-label="后退 5 秒"
+                title="后退 5 秒（在线音频）"
+                disabled
+              >
+                <i data-lucide="rotate-ccw"></i>
+              </button>
+              <button
+                class="icon-button"
+                id="previous"
+                aria-label="上一段"
+                title="上一段"
+              >
+                <i data-lucide="skip-back"></i></button
+              ><button
+                class="play-button"
+                id="play"
+                aria-label="开始朗读"
+                title="开始朗读"
+              >
+                <i data-lucide="play"></i></button
+              ><button
+                class="icon-button"
+                id="stop"
+                aria-label="停止朗读"
+                title="停止朗读"
+              >
+                <i data-lucide="square"></i></button
+              ><button
+                class="icon-button"
+                id="next"
+                aria-label="下一段"
+                title="下一段"
+              >
+                <i data-lucide="skip-forward"></i>
+              </button>
+              <button
+                class="icon-button"
+                id="forward"
+                aria-label="前进 5 秒"
+                title="前进 5 秒（在线音频）"
+                disabled
+              >
+                <i data-lucide="rotate-cw"></i>
+              </button>
+            </div>
+            <div class="player-options">
+              <label class="scope-label"
+                ><span class="sr-only">朗读范围</span
+                ><select id="scope">
+                  <option value="all">全文朗读</option>
+                  <option value="selection">只读选中内容</option>
+                  <option value="from">从选中位置继续</option>
+                </select></label
+              ><label
+                ><span class="sr-only">播放倍速</span
+                ><select id="speed">
+                  <option value="0.75">0.75x</option>
+                  <option value="1" selected>1x</option>
+                  <option value="1.25">1.25x</option>
+                  <option value="1.5">1.5x</option>
+                  <option value="1.75">1.75x</option>
+                  <option value="2">2x</option>
+                </select></label
+              ><button class="voice-button" id="voice-open" title="音色设置">
+                <i data-lucide="audio-lines"></i
+                ><span id="voice-label">系统语音</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <dialog id="settings-dialog" class="settings-dialog">
+      <form method="dialog" class="dialog-header">
+        <h2>朗读设置</h2>
+        <button class="icon-button" aria-label="关闭设置" title="关闭设置">
+          <i data-lucide="x"></i>
+        </button>
+      </form>
+      <div class="settings-body">
+        <fieldset>
+          <legend>语音</legend>
+          <label class="field"
+            >朗读方式<select id="engine">
+              <option value="system">系统语音</option>
+              <option value="openrouter">OpenRouter</option>
+            </select></label
+          >
+          <div id="system-options">
+            <label class="field"
+              >音色<select id="voice">
+                <option value="">浏览器默认</option>
+              </select></label
+            >
+            <p class="setting-note" id="voice-note">
+              音色是否联网由系统及浏览器决定。
+            </p>
+          </div>
+          <div id="online-options" hidden>
+            <label class="field"
+              >API 密钥<input
+                id="api-key"
+                type="password"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="仅保留在内存" /></label
+            ><label class="field"
+              >模型 ID<input
+                id="model"
+                value="elevenlabs/eleven-multilingual-v2"
+                spellcheck="false" /></label
+            ><label class="field"
+              >音色 ID<input
+                id="online-voice"
+                value="sarah"
+                spellcheck="false" /></label
+            ><label class="check consent"
+              ><input id="online-consent" type="checkbox" /><span
+                >允许将所选朗读文字发送给 OpenRouter
+                及其提供方，可能产生费用。请求强制 ZDR；不满足时停止。</span
+              ></label
+            >
+            <p class="setting-note">
+              不自动重试、不预取。密钥不写入文件或浏览器存储。服务还需允许浏览器跨域请求。
+            </p>
+            <button class="command" id="clear-key" type="button">
+              <i data-lucide="key-round"></i>清除密钥与授权
+            </button>
+          </div>
+          <label class="field volume-field"
+            >音量 <output id="volume-label">100%</output
+            ><input
+              id="volume"
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value="1"
+              aria-label="音量"
+          /></label>
+        </fieldset>
+        <fieldset>
+          <legend>阅读</legend>
+          <label class="check"
+            ><input id="academic" type="checkbox" checked /><span
+              >学术朗读模式</span
+            ></label
+          ><label class="field"
+            >公式<select id="math-mode">
+              <option value="smart">智能 · 保留简短变量</option>
+              <option value="skip">跳过公式</option>
+              <option value="all">完整朗读</option>
+            </select></label
+          ><label class="field"
+            >公式语言<select id="math-language">
+              <option value="auto">跟随正文</option>
+              <option value="chinese">中文</option>
+              <option value="english">English</option>
+            </select></label
+          ><label class="check"
+            ><input id="dark-mode" type="checkbox" /><span
+              >深色外观</span
+            ></label
+          >
+        </fieldset>
+        <p class="setting-note">
+          后台与锁屏播放未保证。系统语音不提供音频文件导出。
+        </p>
+        <fieldset>
+          <legend>播放与缓存</legend>
+          <label class="field"
+            >定时停止<select id="sleep-timer">
+              <option value="0">关闭</option>
+              <option value="15">15 分钟</option>
+              <option value="30">30 分钟</option>
+              <option value="60">60 分钟</option>
+            </select></label
+          ><label class="check"
+            ><input id="context-enabled" type="checkbox" checked /><span
+              >正文右键朗读菜单</span
+            ></label
+          >
+          <p id="cache-size" class="setting-note">0 段 · 0.0 MiB</p>
+          <button class="command" id="clear-cache" type="button">
+            <i data-lucide="trash-2"></i>停止并清理播放缓存
+          </button>
+        </fieldset>
+      </div>
+    </dialog>
+    <dialog id="paste-dialog">
+      <form method="dialog" class="dialog-header">
+        <h2>粘贴文字</h2>
+        <button class="icon-button" aria-label="关闭粘贴窗口" title="关闭">
+          <i data-lucide="x"></i>
+        </button>
+      </form>
+      <div class="paste-body">
+        <label class="field"
+          >标题<input
+            id="paste-title"
+            value="未命名文字"
+            maxlength="100" /></label
+        ><label class="field"
+          >正文<textarea
+            id="paste-text"
+            rows="12"
+            maxlength="250000"
+          ></textarea></label
+        ><button class="command primary" id="paste-confirm">
+          <i data-lucide="book-open"></i>开始阅读
+        </button>
+      </div>
+    </dialog>
+    <dialog id="export-dialog">
+      <div class="dialog-header">
+        <h2>导出音频</h2>
+        <button
+          class="icon-button"
+          id="export-cancel"
+          aria-label="取消导出"
+          title="取消导出"
+        >
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="paste-body">
+        <p id="export-summary"></p>
+        <label class="check"
+          ><input type="checkbox" id="export-consent" /><span
+            >确认将此范围合成为音频；允许发送必要分段并承担可能产生的费用。</span
+          ></label
+        >
+        <p id="export-progress" role="status"></p>
+        <button class="command primary" id="export-confirm">
+          <i data-lucide="download"></i>合成并下载
+        </button>
+      </div>
+    </dialog>
+    <div id="reading-context" role="menu" hidden>
+      <button role="menuitem" id="context-selected">朗读选中内容</button
+      ><button role="menuitem" id="context-from">从这里开始朗读</button>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

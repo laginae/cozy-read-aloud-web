@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "coreVersion": "0.2.3",
+  "files": [
+    {
+      "path": "vendor/core/index.js",
+      "repository": "note-reader-core",
+      "source": "index.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "829402b6a66e705312e474e7880faefe2e8f9b383571d880ffdf7db448605a28"
+    },
+    {
+      "path": "vendor/core/LICENSE",
+      "repository": "note-reader-core",
+      "source": "LICENSE",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "a9d2578d42f61df71a23238c9d2526fda8634a0bfed6bf08580de5a7f87edbbb"
+    },
+    {
+      "path": "vendor/core/package.json",
+      "repository": "note-reader-core",
+      "source": "package.json",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "858a287b28e0948326ceaf0cdd205c28478bd79aa8c52d4bdf442b2d22a4efad"
+    },
+    {
+      "path": "vendor/core/src/academic-speech.js",
+      "repository": "note-reader-core",
+      "source": "src/academic-speech.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "eaaadfe925a6781145bf8ac0849854e1e3ac563660f065ea9d618c81f30569e6"
+    },
+    {
+      "path": "vendor/core/src/pdf-layout.js",
+      "repository": "note-reader-core",
+      "source": "src/pdf-layout.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "f764d8f6696dabcdb58ea1ff5dd16ccefb25121c0840ba3b1a7a2e95fbe40c66"
+    },
+    {
+      "path": "vendor/core/src/playback-queue.js",
+      "repository": "note-reader-core",
+      "source": "src/playback-queue.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "72da68a951f25d8f55ff0e8ae5c2b59075a242c5af80e772525f48a281274e03"
+    },
+    {
+      "path": "vendor/core/src/reading-position.js",
+      "repository": "note-reader-core",
+      "source": "src/reading-position.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "dc76c7fef8d1043ee9984caffaeb29a1c18431655daf490888897a98e97992d3"
+    },
+    {
+      "path": "vendor/core/src/semantic-chunker.js",
+      "repository": "note-reader-core",
+      "source": "src/semantic-chunker.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "9cceab68fbc2f4423fae0e39a97ebe76f81d929080dc87f52b68e5f412e9286c"
+    },
+    {
+      "path": "vendor/core/src/task-state.js",
+      "repository": "note-reader-core",
+      "source": "src/task-state.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "803197719eaa48695c33c1f1c6ec992297d26906e1bc56ef309afd2c6526a9f8"
+    },
+    {
+      "path": "vendor/core/src/text-cleaning.js",
+      "repository": "note-reader-core",
+      "source": "src/text-cleaning.js",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "12517800d5710267e2476750d6a931320159dc0c3ddbd51c3004fdd54d796235"
+    },
+    {
+      "path": "vendor/core/test/pdf-golden-fixtures.cjs",
+      "repository": "note-reader-core",
+      "source": "test/pdf-golden-fixtures.cjs",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "c088a29a7f3cb65e3d9f7b129e43b0e1cead2a9e73234aa748741e9e1730a79a"
+    },
+    {
+      "path": "vendor/mobile/LICENSE",
+      "repository": "note-reader-mobile",
+      "source": "LICENSE",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "a9d2578d42f61df71a23238c9d2526fda8634a0bfed6bf08580de5a7f87edbbb"
+    },
+    {
+      "path": "vendor/mobile/pdf-footnotes.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-footnotes.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "cd7ef93846f45e7a70490c01078f2e22d309724bda053dcbbea0222844e503dd"
+    },
+    {
+      "path": "vendor/mobile/pdf-headers.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-headers.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "75d08ddc12846333143c3888925033b18f43a8b8495abe8fef0b67ac8332bea0"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech/academic-speech.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech/academic-speech.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "1a445ed84cbc852ea1ed78dc8d28a141c47cb0113d9d08306b6c14ed534e08b3"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech/math-functions.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech/math-functions.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "cddf4609659bc64028681446e650d8ca2f2fa3c9c513922c9c2b2a3a883f68db"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech/math-symbols.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech/math-symbols.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "c3eeeca5097acbff11f1cacf5e5d007882f01ad527ae6616e4df981763ed4d3c"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech/pdf-math.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech/pdf-math.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "65520581f67a386cee660d934f7396f35dfa0d963fa41d84d6a45efa4482982f"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech/structured-math.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech/structured-math.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "ca3fd95eb95a4e9bd22a7fe8e5039344fc3d47ff77b82dd448c6fbd2de928c36"
+    },
+    {
+      "path": "vendor/mobile/pdf-speech.js",
+      "repository": "note-reader-mobile",
+      "source": "src/pdf-speech.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "0c4888102b7ba7e3779a2bcf40048b8e2ee9aca049b05509a611f1abdae73e9b"
+    },
+    {
+      "path": "vendor/mobile/preparation-pool.js",
+      "repository": "note-reader-mobile",
+      "source": "src/preparation-pool.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "4f7b7b73d9b18b0795fdf045379213199b9f12203d2b58945a68c9cd570f3d1c"
+    },
+    {
+      "path": "vendor/mobile/sentence-chunker.js",
+      "repository": "note-reader-mobile",
+      "source": "src/sentence-chunker.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "86e567b345b01e9ef741f3aea9a1dd1f8ba4fe249ec2dc5d33d200828614e766"
+    },
+    {
+      "path": "vendor/mobile/speech-text.js",
+      "repository": "note-reader-mobile",
+      "source": "src/speech-text.js",
+      "baseRevision": "dc1923cbeaba25f6e45d622ec3bc381eb8237f9f",
+      "unreleasedChange": false,
+      "sha256": "4dfd20787d709be38a4129d3d29a2bbb9521ed9391e3f1bffe3b90281199f858"
+    },
+    {
+      "path": "test/pdf-golden-fixtures.cjs",
+      "repository": "note-reader-core",
+      "source": "test/pdf-golden-fixtures.cjs",
+      "baseRevision": "e2f9b110f85377cce59f6bb5727dc836e0f5fd4b",
+      "unreleasedChange": false,
+      "sha256": "c088a29a7f3cb65e3d9f7b129e43b0e1cead2a9e73234aa748741e9e1730a79a"
+    }
+  ]
+}

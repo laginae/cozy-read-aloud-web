@@ -1,3 +1,17 @@
+// The shared layout extractor requires two positioned items; a single horizontal
+// item still has an unambiguous source range and can be selected safely.
+export function singleItemLayout(layout, items) {
+  if (layout.lines.length) return layout;
+  const text = items.filter(item => item.str?.trim());
+  if (text.length !== 1) return layout;
+  const item = text[0], t = item.transform;
+  if (!t || t.length < 6 || !t.every(Number.isFinite) || t[1] || t[2] ||
+      !(item.width > 0) || !Number.isFinite(item.width) ||
+      layout.text.trim() !== item.str.trim()) return layout;
+  return { ...layout, lines: [{ text: item.str.trim(), xMin: t[4],
+    xMax: t[4] + item.width, y: t[5], height: Math.abs(item.height || t[3]) }] };
+}
+
 export function itemRect(item, start = 0, end = item.str.length) {
   const x = item.transform[4],
     y = item.transform[5];
@@ -167,6 +181,7 @@ export function selectedPdfBlocks(doc, snapshot, from = false) {
         run.item.str.slice(run.start, run.end);
       lastLine = run.lineIndex;
     }
+    raw = raw.replace(/([A-Za-z])-\s*\n\s*(?=[a-z])/g, '$1');
     return [{ ...block, index, raw, rects: runs.flatMap((r) => r.rects) }];
   });
 }

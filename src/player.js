@@ -1,3 +1,4 @@
+import { AudioPreparation, PlaybackTimings, audioKey } from "./audio-preparation.js";
 export const ENDPOINT = "https://openrouter.ai/api/v1/audio/speech";
 export function onlineBody(text, settings) {
   if (!settings.consent || !settings.key?.trim())
@@ -15,7 +16,7 @@ export function onlineBody(text, settings) {
     provider: { zdr: true, data_collection: "deny" },
   };
 }
-export async function requestAudio(text, settings, signal, fetcher = fetch) {
+export async function requestAudio(text, settings, signal, fetcher = fetch, onphase = () => {}) {
   const body = onlineBody(text, settings);
   let response;
   try {
@@ -57,6 +58,7 @@ export async function requestAudio(text, settings, signal, fetcher = fetch) {
   if (!response.body?.getReader) throw new Error("浏览器不支持有界音频下载。");
   const reader = response.body.getReader(),
     parts = [];
+  onphase("download");
   let size = 0;
   try {
     for (;;) {
@@ -81,16 +83,19 @@ export class ReaderPlayer {
     onchange = () => {},
     onerror = () => {},
     onprogress = () => {},
+    onsourceprogress = () => {},
     speech = globalThis.speechSynthesis,
     Utterance = globalThis.SpeechSynthesisUtterance,
     AudioClass = globalThis.Audio,
     fetcher = globalThis.fetch,
+    now,
   } = {}) {
     Object.assign(this, {
       settings,
       onchange,
       onerror,
       onprogress,
+      onsourceprogress,
       speech,
       Utterance,
       AudioClass,
@@ -101,15 +106,15 @@ export class ReaderPlayer {
     this.status = "idle";
     this.generation = 0;
     this.cache = new Map();
+    this.timings = new PlaybackTimings(now);
+    this.preparation = new AudioPreparation(settings, this.cache, fetcher, this.timings, requestAudio, onlineBody);
+    this.preparation.onphase = phase => { this.phase = phase; this.emit(); };
+    this.hidden = false;
   }
   emit() {
     this.onchange(this);
   }
   teardown() {
-    this.abort?.abort();
-    this.abort = null;
-    clearTimeout(this.timeout);
-    this.timeout = null;
     this.speech?.cancel();
     if (this.audio) {
       this.audio.pause();
@@ -124,6 +129,8 @@ export class ReaderPlayer {
   }
   stop() {
     this.generation++;
+    this.preparation.cancel();
+    this.timings.suspend();
     this.teardown();
     this.status = "idle";
     this.emit();
@@ -136,7 +143,7 @@ export class ReaderPlayer {
     this.emit();
   }
   clearCache() {
-    this.cache.clear();
+    this.preparation.clearCache();
   }
   cacheInfo() {
     return {
@@ -160,13 +167,20 @@ export class ReaderPlayer {
     this.clearCache();
     this.emit();
   }
-  async start(index = this.index) {
+  async start(index = this.index, reason = "sessionToPlaying") {
     if (!this.items.length) return;
+    if (this.hidden) return;
+    if (reason !== "gap") this.preparation.failures.clear();
     this.generation++;
     const generation = this.generation;
     this.teardown();
     this.index = Math.max(0, Math.min(this.items.length - 1, index));
+    this.preparation.select(audioKey(this.items[this.index].text, this.settings));
+    this.preparation.pause(false);
+    if (reason !== "gap") this.timings.begin(reason);
     this.status = "loading";
+    this.sourceProgress = 0;
+    this.phase = this.settings.engine === "system" ? "system" : "request";
     this.emit();
     const text = this.items[this.index].text,
       s = { ...this.settings };
@@ -186,11 +200,17 @@ export class ReaderPlayer {
         u.volume = s.volume;
         u.onstart = () => {
           if (generation === this.generation && this.status !== "paused") {
+            this.timings.playing(this.timings.now());
             this.status = "playing";
             this.emit();
           }
         };
         u.onend = () => this.ended(generation);
+        u.onboundary = event => {
+          if (generation !== this.generation || this.status !== "playing") return;
+          this.sourceProgress = Math.min(1, Math.max(0, event.charIndex / Math.max(1, text.length)));
+          this.onsourceprogress(this.sourceProgress);
+        };
         u.onerror = (e) => {
           if (
             generation === this.generation &&
@@ -202,40 +222,26 @@ export class ReaderPlayer {
         if (this.speech.paused && this.status !== "paused")
           this.speech.resume();
       } else {
-        // Always revalidate consent, including cache hits; never store the API key in a cache key.
-        onlineBody(text, s);
-        const cacheKey = JSON.stringify([s.model, s.onlineVoice, text]);
-        let blob = this.cache.get(cacheKey);
-        if (!blob) {
-          this.abort = new AbortController();
-          const abort = this.abort;
-          let timedOut = false;
-          const timer = (this.timeout = setTimeout(() => {
-            timedOut = true;
-            abort.abort();
-          }, 60000));
-          try {
-            blob = await requestAudio(text, s, abort.signal, this.fetcher);
-          } catch (e) {
-            if (timedOut)
-              throw new Error("语音合成等待超过 60 秒，已停止，没有自动重试。");
-            throw e;
-          } finally {
-            clearTimeout(timer);
-            if (this.timeout === timer) this.timeout = null;
-          }
-          if (generation !== this.generation) return;
-          this.cache.set(cacheKey, blob);
-          while (
-            this.cache.size > 8 ||
-            [...this.cache.values()].reduce((sum, b) => sum + b.size, 0) >
-              20 * 1024 * 1024
-          )
-            this.cache.delete(this.cache.keys().next().value);
-        }
+        const waiting = this.timings.now();
+        const blob = await this.preparation.prepare(text, s);
         if (generation !== this.generation) return;
+        this.timings.record("foregroundWait", this.timings.now() - waiting);
+        this.phase = "playback";
+        this.emit();
         this.url = URL.createObjectURL(blob);
         const audio = (this.audio = new this.AudioClass(this.url));
+        this.audioStartedAt = this.timings.now();
+        let measured = false;
+        audio.onplaying = () => {
+          if (generation !== this.generation || audio !== this.audio) return;
+          if (this.status === "paused" || this.hidden) { audio.pause(); return; }
+          if (!measured || this.timings.intent) this.timings.playing(this.audioStartedAt);
+          measured = true;
+          this.prefetchNext(generation);
+        };
+        audio.onpause = () => {
+          if (generation === this.generation && audio === this.audio && !audio.ended && audio.paused !== false) this.pause();
+        };
         audio.volume = this.settings.volume;
         audio.playbackRate = this.settings.speed;
         audio.ontimeupdate = audio.onloadedmetadata = () => {
@@ -280,7 +286,8 @@ export class ReaderPlayer {
       this.endedPaused = true;
       return;
     }
-    if (this.index + 1 < this.items.length) this.start(this.index + 1);
+    this.timings.ended();
+    if (this.index + 1 < this.items.length) this.start(this.index + 1, "gap");
     else {
       this.generation++;
       this.teardown();
@@ -291,12 +298,18 @@ export class ReaderPlayer {
   pause() {
     if (!["playing", "loading"].includes(this.status)) return;
     this.status = "paused";
+    this.preparation.pause(true);
+    this.timings.suspend();
     this.speech?.pause();
     this.audio?.pause();
     this.emit();
   }
   resume() {
     if (this.status !== "paused") return;
+    if (this.hidden) return;
+    this.preparation.pause(false);
+    this.timings.begin("resumeToPlaying");
+    this.audioStartedAt = this.timings.now();
     if (this.endedPaused) {
       this.status = "playing";
       this.ended(this.generation);
@@ -316,11 +329,13 @@ export class ReaderPlayer {
   jump(index) {
     const active = ["playing", "loading"].includes(this.status);
     this.generation++;
+    this.preparation.cancel();
+    this.timings.suspend();
     this.teardown();
     this.index = Math.max(0, Math.min(this.items.length - 1, index));
     this.status = "ready";
     this.emit();
-    if (active) this.start();
+    if (active) this.start(this.index, "jumpToPlaying");
   }
   setSpeed(value) {
     this.settings.speed = value;
@@ -337,9 +352,22 @@ export class ReaderPlayer {
   }
   fail(error) {
     this.generation++;
+    this.preparation.cancel();
+    this.timings.suspend();
     this.teardown();
     this.status = "error";
     this.emit();
     this.onerror(error?.message || "朗读失败。");
+  }
+  prefetchNext(generation = this.generation) {
+    if (generation !== this.generation || this.hidden || this.status === "paused"
+      || this.settings.engine !== "openrouter" || this.settings.prefetch !== true) return;
+    const next = this.items[this.index + 1];
+    if (!next || next.text.length > 500) return;
+    void this.preparation.prepare(next.text, { ...this.settings }, true).catch(() => {});
+  }
+  setHidden(hidden) {
+    this.hidden = hidden;
+    if (hidden) this.pause();
   }
 }

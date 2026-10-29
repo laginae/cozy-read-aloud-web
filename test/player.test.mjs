@@ -176,6 +176,7 @@ test("late online response after stop never plays or fills the cache", async () 
   });
   p.load([{ text: "Public sample." }]);
   const running = p.start();
+  await new Promise(r => setImmediate(r));
   p.stop();
   resolve(audioResponse());
   await running;
@@ -203,6 +204,7 @@ test("pausing an in-flight request retains audio without starting until resume",
   });
   p.load([{ text: "Public sample." }]);
   const running = p.start();
+  await new Promise(r => setImmediate(r));
   p.pause();
   resolve(audioResponse());
   await running;
@@ -245,7 +247,7 @@ test("pause during an unresolved audio play promise stays paused", async () => {
   p.stop();
 });
 
-test("a superseded response cannot clear the current request timeout", async () => {
+test("a superseded response cannot cancel the current request controller", async () => {
   const pending = [];
   class Audio {
     play() {
@@ -263,11 +265,14 @@ test("a superseded response cannot clear the current request timeout", async () 
   });
   p.load([{ text: "First public sample." }, { text: "Second public sample." }]);
   const first = p.start();
+  await new Promise(r => setImmediate(r));
   const second = p.start(1);
-  const currentTimer = p.timeout;
+  await new Promise(r => setImmediate(r));
+  const currentOperation = [...p.preparation.operations.values()].at(-1);
   pending[0](audioResponse());
   await first;
-  assert.equal(p.timeout, currentTimer);
+  assert.ok([...p.preparation.operations.values()].includes(currentOperation));
+  assert.equal(currentOperation.abort.signal.aborted, false);
   pending[1](audioResponse());
   await second;
   p.stop();

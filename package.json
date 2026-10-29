@@ -1,12 +1,12 @@
 {
   "name": "cozy-read-aloud-web",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
     "start": "node scripts/serve.mjs",
-    "test": "node --test test/*.test.mjs",
+    "test": "node scripts/check-shared.mjs && node --test test/*.test.mjs",
     "test:browser": "node scripts/browser-check.mjs"
   },
   "dependencies": {

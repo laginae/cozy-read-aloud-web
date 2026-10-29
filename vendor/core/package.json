@@ -1,11 +1,12 @@
 {
   "name": "@laginae/note-reader-core",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Platform-neutral reading algorithms shared by Note and PDF Voice Reader plugins.",
   "license": "MIT",
   "main": "index.js",
   "exports": {
     ".": "./index.js",
+    "./test/pdf-golden-fixtures": "./test/pdf-golden-fixtures.cjs",
     "./academic-speech": "./src/academic-speech.js",
     "./pdf-layout": "./src/pdf-layout.js",
     "./playback-queue": "./src/playback-queue.js",
@@ -16,6 +17,7 @@
   },
   "files": [
     "index.js",
+    "test/pdf-golden-fixtures.cjs",
     "src"
   ],
   "sideEffects": false,

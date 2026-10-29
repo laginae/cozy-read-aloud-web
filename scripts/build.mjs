@@ -1,16 +1,28 @@
 import { build } from "esbuild";
-import { cp, mkdir } from "node:fs/promises";
+import { cp, mkdir, readdir, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 await mkdir("dist/assets", { recursive: true });
-await build({
+const chunks = path.resolve("dist/chunks");
+if (!chunks.startsWith(path.resolve("dist") + path.sep)) throw new Error("Invalid build path");
+await mkdir(chunks, { recursive: true });
+for (const entry of await readdir(chunks, { withFileTypes: true })) {
+  if (entry.isFile() && /^[\w-]+\.js$/.test(entry.name)) await unlink(path.join(chunks, entry.name));
+}
+const result = await build({
   entryPoints: ["src/app.js"],
   bundle: true,
   format: "esm",
   platform: "browser",
   target: "es2022",
-  outfile: "dist/app.js",
+  outdir: "dist",
+  splitting: true,
+  chunkNames: "chunks/[name]-[hash]",
+  metafile: true,
   minify: true,
   legalComments: "eof",
 });
+await mkdir("output", { recursive: true });
+await writeFile("output/build-meta.json", JSON.stringify(result.metafile, null, 2));
 for (const file of [
   "index.html",
   "styles.css",
@@ -28,3 +40,4 @@ for (const dir of ["cmaps", "standard_fonts", "wasm"])
     recursive: true,
   });
 console.log("Built browser-local prototype in dist/.");
+await import("./check-build.mjs");

@@ -30,6 +30,9 @@ import {
 import { ReaderPlayer } from "./player.js";
 import { capturePdfSelection } from "./pdf-selection.js";
 import { exportAudio, exportSummary } from "./audio-export.js";
+import { followTarget, followDelta } from "./follow.js";
+import { readPreferences, writePreferences } from "./preferences.js";
+import { installInterfaceLanguage } from "./i18n.js";
 import {
   SAMPLE,
   textDocument,
@@ -69,6 +72,9 @@ const icons = {
 };
 const $ = (id) => document.getElementById(id),
   refreshIcons = () => createIcons({ icons, attrs: { "aria-hidden": "true" } });
+let preferenceStorage;
+try { preferenceStorage = globalThis.localStorage; } catch { /* Session-only remains available. */ }
+const saved = readPreferences(preferenceStorage);
 const settings = {
   engine: "system",
   voice: "",
@@ -78,10 +84,15 @@ const settings = {
   model: "elevenlabs/eleven-multilingual-v2",
   onlineVoice: "sarah",
   consent: false,
+  prefetch: false,
   academic: true,
   mathMode: "smart",
   mathLanguage: "auto",
+  skipHeaders: true,
+  footnoteMode: "body",
 };
+for (const key of ["speed", "volume", "academic", "mathMode", "mathLanguage", "skipHeaders", "footnoteMode"])
+  if (saved[key] !== undefined) settings[key] = saved[key];
 const state = {
   docs: [],
   current: null,
@@ -91,7 +102,11 @@ const state = {
   fontSize: 19,
   loading: null,
   lastBlock: null,
+  partial: null,
+  followUntil: 0,
+  followKey: "",
 };
+for (const key of ["highlight", "follow", "fontSize"]) if (saved[key] !== undefined) state[key] = saved[key];
 function notify(message) {
   $("notice").hidden = !message;
   $("notice").querySelector("span").textContent = message || "";
@@ -101,6 +116,7 @@ const player = new ReaderPlayer({
   onchange: renderPlayer,
   onerror: notify,
   onprogress: renderAudioTime,
+  onsourceprogress: followReading,
 });
 let exportController = null,
   exportItems = [],
@@ -115,6 +131,7 @@ function renderAudioTime(time = 0, duration = 0) {
   $("audio-time").textContent = `${format(time)} / ${format(duration)}`;
   const enabled = !!player.audio && Number.isFinite(duration) && duration > 0;
   $("rewind").disabled = $("forward").disabled = !enabled;
+  if (duration > 0 && player.status === "playing") followReading(time / duration);
 }
 function iconButton(icon, label, fn, extra = "") {
   const b = document.createElement("button");
@@ -146,6 +163,7 @@ function renderDocuments() {
     button.append(name);
     button.title = doc.name;
     button.addEventListener("click", () => {
+      cancelImport();
       activate(doc);
       closeSidebar();
     });
@@ -192,6 +210,7 @@ function renderOutline() {
       "play",
       `从 ${entry.title} 朗读`,
       () => {
+        if (state.loading || doc.complete === false) return;
         const queue = buildQueue(doc, settings),
           index = queue.findIndex((item) => item.block >= entry.block);
         if (index < 0) return notify("该章节没有可朗读文字。");
@@ -204,6 +223,7 @@ function renderOutline() {
       },
       "outline-play",
     );
+    play.disabled = doc.complete === false;
     row.append(button, play);
     $("outline").append(row);
   }
@@ -232,11 +252,14 @@ function rebuild() {
   player.load(buildQueue(state.current, settings));
 }
 function activate(doc) {
+  const retainedScroll = doc === state.current ? $("reader").scrollTop : 0;
   abortExport();
   state.current?.observer?.disconnect();
   state.current = doc;
   state.selection = null;
   state.lastBlock = null;
+  state.followUntil = 0;
+  state.followKey = "";
   notify("");
   player.clear();
   $("reader").replaceChildren();
@@ -244,7 +267,7 @@ function activate(doc) {
   $("empty").hidden = !!doc;
   if (doc) {
     $("reader").append(doc.root);
-    $("reader").scrollTop = 0;
+    $("reader").scrollTop = retainedScroll;
     $("document-title").textContent = doc.name;
     $("document-type").textContent = doc.kind.toUpperCase();
     const chars = doc.blocks.reduce(
@@ -288,6 +311,7 @@ function activate(doc) {
   renderPlayer();
 }
 function removeDocument(doc) {
+  if (state.partial === doc) { cancelImport(); return; }
   const index = state.docs.indexOf(doc);
   state.docs.splice(index, 1);
   if (state.current === doc)
@@ -307,13 +331,15 @@ function renderPlayer() {
   const labels = {
     idle: "已停止",
     ready: "已就绪",
-    loading: settings.engine === "system" ? "等待系统语音" : "正在合成",
+    loading: settings.engine === "system" ? "等待系统语音" : ({ playback: "正在准备播放", queue: "等待可用请求", download: "正在接收音频" }[player.phase] || "正在合成"),
     playing: "正在朗读",
     paused: "已暂停",
     complete: "朗读完成",
     error: "朗读中断",
   };
   $("play-status").textContent = labels[player?.status || "ready"];
+  if (state.loading && state.partial)
+    $("play-status").textContent = `解析 PDF · ${state.partial.pages.length} / ${state.partial.totalPages}`;
   const count = player?.items.length || 0;
   $("segment-counter").textContent =
     `${count ? player.index + 1 : 0} / ${count}`;
@@ -328,7 +354,11 @@ function renderPlayer() {
       : "开始朗读";
   $("play").setAttribute("aria-label", label);
   $("play").title = label;
-  $("play").innerHTML = `<i data-lucide="${running ? "pause" : "play"}"></i>`;
+  $("play").innerHTML = `<i data-lucide="${running ? "pause" : player.status === "error" ? "rotate-cw" : "play"}"></i>`;
+  if (player.status === "error") {
+    $("play").title = "重试当前段（优先复用缓存；新请求可能收费）";
+    $("play").setAttribute("aria-label", $("play").title);
+  }
   $("play").disabled = !state.current || !!state.loading;
   $("stop").disabled =
     !state.loading &&
@@ -385,35 +415,8 @@ function highlight() {
       }
     }
   }
-  if (
-    item &&
-    ["playing", "loading"].includes(player.status) &&
-    state.lastBlock !== item.block
-  ) {
-    const block = doc.blocks[item.block];
-    if (doc.kind !== "pdf" || block?.pageData.viewport)
-      state.lastBlock = item.block;
-    if (state.follow && block) {
-      let top = block.el.getBoundingClientRect().top,
-        bottom = block.el.getBoundingClientRect().bottom;
-      const bounds = $("reader").getBoundingClientRect();
-      if (doc.kind === "pdf" && block.pageData.viewport) {
-        const ys = (item.rects || block.rects).flatMap((rect) => {
-          const r = viewportRectangle(block.pageData.viewport, rect);
-          return [r[1], r[3]];
-        });
-        bottom = top + Math.max(...ys);
-        top += Math.min(...ys);
-      }
-      if (top < bounds.top + 20 || bottom > bounds.bottom - 20)
-        $("reader").scrollTo({
-          top: $("reader").scrollTop + top - bounds.top - 30,
-          behavior: matchMedia("(prefers-reduced-motion: reduce)").matches
-            ? "auto"
-            : "smooth",
-        });
-    }
-  }
+  if (item && ["playing", "loading"].includes(player.status))
+    followReading(player.audio?.duration > 0 ? player.audio.currentTime / player.audio.duration : player.sourceProgress || 0);
   const headings = doc.outline.filter((e) => item && e.block <= item.block),
     current = headings.at(-1);
   for (const b of $("outline").querySelectorAll("[data-outline-block]"))
@@ -422,18 +425,47 @@ function highlight() {
       !!current && Number(b.dataset.outlineBlock) === current.block,
     );
 }
-async function importFiles(files) {
-  if (state.loading) {
-    state.loading.abort();
-    state.loading = null;
+function followReading(fraction = 0) {
+  if (!state.follow || Date.now() < state.followUntil || state.loading) return;
+  const doc = state.current, item = player.items[player.index], block = doc?.blocks[item?.block];
+  if (!block) return;
+  const box = block.el.getBoundingClientRect();
+  let rects;
+  if (doc.kind === "pdf") {
+    if (!block.pageData.viewport) { locate(block.el); return; }
+    rects = (item.rects || block.rects).map(rect => {
+      const r = viewportRectangle(block.pageData.viewport, rect);
+      return { left: box.left + Math.min(r[0], r[2]), right: box.left + Math.max(r[0], r[2]),
+        top: box.top + Math.min(r[1], r[3]), bottom: box.top + Math.max(r[1], r[3]) };
+    });
+  } else {
+    const range = document.createRange();
+    range.selectNodeContents(block.el);
+    rects = [...range.getClientRects()].filter(r => r.height && r.width);
+    fraction = (item.sourceStart || 0) + fraction * ((item.sourceEnd ?? 1) - (item.sourceStart || 0));
   }
+  const target = followTarget(rects, fraction);
+  if (!target) return;
+  const key = `${doc.id}:${player.index}:${target.index}`;
+  if (key === state.followKey) return;
+  state.followKey = key;
+  const reader = $("reader"), delta = followDelta(target, reader.getBoundingClientRect());
+  if (delta.x || delta.y) reader.scrollTo({ top: reader.scrollTop + delta.y, left: reader.scrollLeft + delta.x, behavior: "instant" });
+}
+for (const event of ["wheel", "touchstart", "pointerdown"])
+  $("reader").addEventListener(event, () => { state.followUntil = Date.now() + 4000; state.followKey = ""; }, { passive: true });
+async function importFiles(files) {
+  const incoming = [...files].slice(0, 8);
+  cancelImport();
   player.stop();
   const controller = new AbortController();
   state.loading = controller;
+  const current = () => state.loading === controller && !controller.signal.aborted;
   renderPlayer();
   $("import").disabled = true;
   try {
-    for (const file of [...files].slice(0, 8)) {
+    for (const file of incoming) {
+      if (!current()) break;
       if (state.docs.length >= 8) {
         notify("当前最多同时打开 8 个文件。");
         break;
@@ -441,15 +473,25 @@ async function importFiles(files) {
       $("play-status").textContent = `打开 ${file.name}`;
       try {
         const doc = await readFile(file, controller.signal, (n, total) => {
-          $("play-status").textContent = `解析 PDF · ${n} / ${total}`;
+          if (current()) $("play-status").textContent = `解析 PDF · ${n} / ${total}`;
+        }, preview => {
+          if (!current()) return;
+          if (!state.partial) {
+            state.partial = preview;
+            activate(preview);
+          } else renderPdf(preview, $("reader"), () => highlight(), notify);
+          $("play-status").textContent = `解析 PDF · ${preview.pages.length} / ${preview.totalPages}`;
         });
-        if (controller.signal.aborted) {
+        if (!current()) {
           doc.dispose();
           break;
         }
+        state.partial = null;
         addDocument(doc);
       } catch (e) {
-        if (!controller.signal.aborted)
+        if (!current()) break;
+        discardPreview();
+        if (e.name !== "AbortError")
           notify(
             e.name === "PasswordException"
               ? "PDF 受密码保护，请先在本地解锁。"
@@ -461,13 +503,33 @@ async function importFiles(files) {
     if (state.loading === controller) {
       state.loading = null;
       $("import").disabled = false;
+      $("file-input").value = "";
       renderPlayer();
     }
-    $("file-input").value = "";
+  }
+}
+function cancelImport() {
+  if (!state.loading) return;
+  state.loading.abort();
+  state.loading = null;
+  discardPreview();
+  $("import").disabled = false;
+  $("file-input").value = "";
+  renderPlayer();
+}
+function discardPreview() {
+  const preview = state.partial;
+  state.partial = null;
+  if (preview) {
+    if (state.current === preview) activate(state.docs.at(-1) || null);
+    preview.dispose();
   }
 }
 function play() {
+  if (state.loading) return;
   notify("");
+  state.followUntil = 0;
+  state.followKey = "";
   if (["loading", "playing"].includes(player.status)) {
     player.pause();
     return;
@@ -580,6 +642,7 @@ $("paste").onclick = () => $("paste-dialog").showModal();
 $("paste-confirm").onclick = () => {
   const text = $("paste-text").value;
   if (!text.trim()) return $("paste-text").focus();
+  cancelImport();
   try {
     addDocument(
       textDocument(text, $("paste-title").value.trim() || "未命名文字", "md"),
@@ -591,6 +654,7 @@ $("paste-confirm").onclick = () => {
   }
 };
 $("sample-open").onclick = () => {
+  cancelImport();
   const existing = state.docs.find((d) => d.sample);
   if (existing) activate(existing);
   else {
@@ -602,6 +666,19 @@ $("sample-open").onclick = () => {
 };
 $("settings-open").onclick = $("voice-open").onclick = () =>
   $("settings-dialog").showModal();
+$("prefetch").onchange = (event) => {
+  settings.prefetch = event.target.checked;
+  if (!settings.prefetch) player.preparation.pause(true);
+  if (player.status !== "paused") player.preparation.pause(false);
+  if (settings.prefetch && player.status === "playing") player.prefetchNext();
+};
+$("timings-download").onclick = () => {
+  const report = { ...player.timings.snapshot(), evidence: "browser playback events; not acoustic speaker measurement" };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
+  const link = document.createElement("a");
+  link.href = url; link.download = "cozy-playback-timings.json"; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 $("menu-toggle").onclick = () => {
   const open = !$("sidebar").classList.contains("open");
   $("sidebar").classList.toggle("open", open);
@@ -613,7 +690,7 @@ $("notice-close").onclick = () => notify("");
 $("play").onclick = play;
 $("stop").onclick = () => {
   abortExport();
-  state.loading?.abort();
+  cancelImport();
   player.stop();
   state.lastBlock = null;
 };
@@ -728,6 +805,8 @@ $("follow").onclick = () => {
   state.follow = !state.follow;
   $("follow").setAttribute("aria-pressed", String(state.follow));
   if (state.follow) {
+    state.followUntil = 0;
+    state.followKey = "";
     state.lastBlock = null;
     highlight();
   }
@@ -770,9 +849,11 @@ for (const [id, key] of [
   ["academic", "academic"],
   ["math-mode", "mathMode"],
   ["math-language", "mathLanguage"],
+  ["pdf-headers", "skipHeaders"],
+  ["pdf-footnotes", "footnoteMode"],
 ])
   $(id).onchange = (e) => {
-    settings[key] = id === "academic" ? e.target.checked : e.target.value;
+    settings[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     $("math-mode").disabled = !settings.academic;
     rebuild();
   };
@@ -880,10 +961,13 @@ $("reader").addEventListener("drop", (e) => {
   void importFiles(e.dataTransfer.files);
 });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) player.pause();
+  player.setHidden(document.hidden);
 });
+document.addEventListener("freeze", () => player.setHidden(true));
+window.addEventListener("pageshow", () => player.setHidden(document.hidden));
 window.addEventListener("pagehide", () => {
-  state.loading?.abort();
+  player.setHidden(true);
+  cancelImport();
   clearKey();
   $("paste-text").value = "";
 });
@@ -914,6 +998,29 @@ window.addEventListener("keydown", (e) => {
   }
 });
 globalThis.speechSynthesis?.addEventListener("voiceschanged", refreshVoices);
+for (const [id, value] of Object.entries({ speed: settings.speed, volume: settings.volume,
+  academic: settings.academic, "math-mode": settings.mathMode, "math-language": settings.mathLanguage,
+  "pdf-headers": settings.skipHeaders, "pdf-footnotes": settings.footnoteMode,
+  "dark-mode": saved.dark || false, "context-enabled": saved.contextMenu ?? true,
+  "remember-preferences": saved.enabled === true, "interface-language": saved.language || "zh-CN" })) {
+  if ($(id).type === "checkbox") $(id).checked = value;
+  else $(id).value = value;
+}
+document.body.classList.toggle("dark", saved.dark === true);
+document.documentElement.style.setProperty("--reader-size", `${state.fontSize}px`);
+$("highlight").setAttribute("aria-pressed", String(state.highlight));
+$("follow").setAttribute("aria-pressed", String(state.follow));
+const setLanguage = installInterfaceLanguage(saved.language);
+const persistPreferences = () => {
+  if (!writePreferences(preferenceStorage, $("remember-preferences").checked, {
+    ...settings, highlight: state.highlight, follow: state.follow, fontSize: state.fontSize,
+    language: $("interface-language").value, dark: $("dark-mode").checked, contextMenu: $("context-enabled").checked,
+  }) && $("remember-preferences").checked) notify("偏好无法保存；本次仍可正常使用。");
+};
+$("interface-language").onchange = event => setLanguage(event.target.value);
+document.addEventListener("change", persistPreferences);
+for (const id of ["highlight", "follow", "font-smaller", "font-larger"])
+  $(id).addEventListener("click", persistPreferences);
 const sample = textDocument(SAMPLE, "清晨散步", "md");
 sample.sample = true;
 addDocument(sample);

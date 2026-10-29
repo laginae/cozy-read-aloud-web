@@ -37,7 +37,14 @@ function applyRange(text, page) {
   if (!range) return null;
   const edits = [];
   for (const change of page.mathChanges || []) {
-    const line = uniqueRange(source, change.source)
+    // An isolated formula row such as "a" must not match letters inside prose.
+    const exactLines = [];
+    let offset = 0;
+    for (const row of source.split('\n')) {
+      if (indexed(row).text === indexed(change.source).text) exactLines.push({ start: offset, end: offset + row.length });
+      offset += row.length + 1;
+    }
+    const line = (exactLines.length === 1 ? exactLines[0] : null) || uniqueRange(source, change.source)
       || (change.joinedSource && /[A-Za-z]-$/.test(change.source)
         ? uniqueRange(source, change.source.slice(0, -1)) : null);
     if (!line) continue;
@@ -90,4 +97,4 @@ function preparePdfSelection(text, pages) {
   }).join('\n').trim();
 }
 
-module.exports = { preparePdfSpeech, preparePdfSelection };
+module.exports = { preparePdfSpeech, preparePdfSelection, uniquePdfRange: uniqueRange };

@@ -1,13 +1,16 @@
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import { getDocument, GlobalWorkerOptions, TextLayer } from "pdfjs-dist";
 import core from "@laginae/note-reader-core";
 import speechText from "../vendor/mobile/speech-text.js";
 import chunker from "../vendor/mobile/sentence-chunker.js";
-import pdfSpeech from "../vendor/mobile/pdf-speech.js";
 import pdfMath from "../vendor/mobile/pdf-speech/pdf-math.js";
-import { mapPdfItems, selectedPdfBlocks } from "./pdf-selection.js";
-GlobalWorkerOptions.workerSrc = new URL("./pdf.worker.mjs", location.href).href;
+import { mapPdfItems, selectedPdfBlocks, singleItemLayout } from "./pdf-selection.js";
+import { formulaOptions, queueBlocks } from "./speech-queue.js";
+import { loadPdfRuntime } from "./pdf-runtime.js";
+import { awaitActive, countPdfText, throwIfAborted } from "./import-lifecycle.js";
+import pdfHeaders from "../vendor/mobile/pdf-headers.js";
+import pdfFootnotes from "../vendor/mobile/pdf-footnotes.js";
+export { formulaOptions, buildQueue } from "./speech-queue.js";
 const tags = [
   "h1",
   "h2",
@@ -54,19 +57,6 @@ export function viewportRectangle(viewport, rect) {
   ];
 }
 export const SAMPLE = `# 清晨散步\n\n把脚步放慢一些，日常也会露出新的轮廓。\n\n## 出门之前\n\n清晨的街道还很安静。窗外的光落在桌面上，一杯热茶正慢慢散去水汽。今天没有需要赶上的车，也没有必须走完的路线。穿上一双舒服的鞋，就可以出门了。\n\n沿着熟悉的小路走，先不急着寻找目的地。看看路边的树影，听听远处传来的声音。有时候，注意一件很小的事，就足以让心情发生变化。\n\n## 在河边停一会儿\n\n河水把天空的颜色带到桥下。有人扶着栏杆看水，有人坐在长椅上读书。每个人都拥有自己的速度，我们不必把一天走成同一种节奏。\n\n> 停下来并不是错过，而是给正在发生的事留一点空间。\n\n继续向前时，可以换一条没走过的路。一家刚开门的小店，一扇贴着手写便签的窗，都可能成为今天记住的片段。\n\n## 带着发现回家\n\n回程的路并不比来时更短，但熟悉的景色似乎有了不同的层次。把刚才看到的一两件事写下来，不必写得完整，也不必找到结论。\n\n日子里的片刻安静，不需要特别的准备。下次走出门时，也许可以把手机留在口袋里，再多看一眼身边的世界。`;
-export function formulaOptions(settings, text) {
-  return {
-    academicMathMode: settings.academic ? settings.mathMode : "all",
-    academicMathStyle: settings.mathMode === "all" ? "verbose" : "concise",
-    academicSkipNotice: true,
-    mathReadingLanguage:
-      settings.mathLanguage === "auto"
-        ? /[\u3400-\u9fff]/.test(text)
-          ? "chinese"
-          : "english"
-        : settings.mathLanguage,
-  };
-}
 export function sanitizedFragment(source, markdown = false) {
   return DOMPurify.sanitize(
     markdown ? marked.parse(source, { gfm: true, breaks: false }) : source,
@@ -165,50 +155,13 @@ export function textDocument(source, name = "未命名文字", kind = "md") {
     },
   };
 }
-export function buildQueue(doc, settings) {
-  return queueBlocks(
-    doc,
-    doc.blocks.map((block, index) => ({ ...block, index })),
-    settings,
-  );
-}
-function queueBlocks(doc, blocks, settings) {
-  const pageOptions = new Map();
-  return blocks.flatMap((block) => {
-    const index = block.index;
-    if (settings.academic && block.kind === "code") return [];
-    let raw = block.raw;
-    const options = formulaOptions(settings, doc.languageText || raw);
-    if (block.pageData && settings.academic) {
-      const p = block.pageData;
-      if (!pageOptions.has(p))
-        pageOptions.set(p, {
-          ...p,
-          mathChanges: pdfMath.pdfMathChanges(
-            p.layout,
-            p.items,
-            options,
-            p.fonts,
-          ),
-        });
-      raw = pdfSpeech.preparePdfSpeech(raw, pageOptions.get(p));
-    }
-    const clean = speechText.sanitizeAcademicTextForSpeech(raw, options);
-    return chunker
-      .splitTextForSpeechChunks(clean, [240])
-      .filter(Boolean)
-      .map((text) => ({
-        text,
-        block: index,
-        targets: [index],
-        rects: block.rects,
-      }));
-  });
-}
 export function selectionQueue(doc, snapshot, settings, from = false) {
+  if (doc.complete === false) throw new Error("PDF 仍在解析，请等待完成后朗读。");
   if (!snapshot?.text?.trim()) throw new Error("请先在正文中选中文字。");
   if (doc.kind === "pdf")
-    return queueBlocks(doc, selectedPdfBlocks(doc, snapshot, from), settings);
+    return queueBlocks(doc, selectedPdfBlocks(doc, snapshot, from).map((block, index) => ({
+      ...block, explicitSelection: !from || index === 0,
+    })), settings);
   const range = snapshot.range,
     indices = doc.blocks.flatMap((b, i) =>
       range.intersectsNode(b.el) ? [i] : [],
@@ -254,7 +207,8 @@ export function selectionQueue(doc, snapshot, settings, from = false) {
       .map((text) => ({ text, block: b.index, targets: [b.index] })),
   );
 }
-export async function readFile(file, signal, onprogress = () => {}) {
+export async function readFile(file, signal, onprogress = () => {}, onpreview = () => {}) {
+  throwIfAborted(signal);
   const ext = file.name.split(".").pop().toLowerCase();
   if (!["md", "markdown", "txt", "html", "htm", "pdf"].includes(ext))
     throw new Error("仅支持 Markdown、PDF、HTML 和 TXT 文件。");
@@ -262,25 +216,28 @@ export async function readFile(file, signal, onprogress = () => {}) {
     throw new Error("文件过大。PDF 上限 30 MiB，文本文件上限 1 MiB。");
   if (ext !== "pdf")
     return textDocument(
-      await file.text(),
+      await awaitActive(signal, () => file.text()),
       file.name,
       ["html", "htm"].includes(ext) ? "html" : ext === "txt" ? "txt" : "md",
     );
+  const { getDocument, TextLayer } = await awaitActive(signal, loadPdfRuntime);
+  const bytes = await awaitActive(signal, () => file.arrayBuffer());
+  throwIfAborted(signal);
   const task = getDocument({
-    data: new Uint8Array(await file.arrayBuffer()),
+    data: new Uint8Array(bytes),
     isEvalSupported: false,
     cMapUrl: new URL("./cmaps/", location.href).href,
     cMapPacked: true,
     standardFontDataUrl: new URL("./standard_fonts/", location.href).href,
     wasmUrl: new URL("./wasm/", location.href).href,
   });
-  const abort = () => {
-    void task.destroy();
-  };
+  let destruction;
+  const disposeTask = () => destruction ||= Promise.resolve().then(() => task.destroy()).catch(() => {});
+  const abort = () => { void disposeTask(); };
   signal.addEventListener("abort", abort, { once: true });
-  let pdf;
+  let pdf, partial;
   try {
-    pdf = await task.promise;
+    pdf = await awaitActive(signal, () => task.promise);
     if (pdf.numPages > 120) throw new Error("PDF 超过 120 页，请先拆分。");
     const root = document.createElement("article");
     root.className = "pdf-pages";
@@ -295,14 +252,29 @@ export async function readFile(file, signal, onprogress = () => {}) {
       pdf,
       languageText: "",
       observer: null,
+      TextLayer,
+      complete: false,
+      totalPages: pdf.numPages,
     };
+    partial = doc;
+    doc.dispose = () => {
+      doc.epoch = (doc.epoch || 0) + 1;
+      doc.observer?.disconnect();
+      for (const p of doc.pages) {
+        p.renderTask?.cancel();
+        p.textLayer?.cancel();
+      }
+      root.remove();
+      void disposeTask();
+    };
+    let characters = 0;
     for (let number = 1; number <= pdf.numPages; number++) {
-      if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-      onprogress(number, pdf.numPages);
-      const page = await pdf.getPage(number),
-        content = await page.getTextContent(),
+      throwIfAborted(signal);
+      const page = await awaitActive(signal, () => pdf.getPage(number)),
+        content = await awaitActive(signal, () => page.getTextContent()),
         viewport = page.getViewport({ scale: 1 });
-      const layout = core.extractPdfTextLayout(content.items, { viewport });
+      characters = countPdfText(content.items, characters);
+      const layout = pdfFootnotes.markFootnotes(singleItemLayout(core.extractPdfTextLayout(content.items, { viewport }), content.items), content.items, viewport, number);
       const fonts = pdfMath.pdfFontNames(page, content.items);
       const pageData = {
         pageNumber: number,
@@ -310,6 +282,7 @@ export async function readFile(file, signal, onprogress = () => {}) {
         layout,
         items: content.items,
         fonts,
+        edgeCandidates: pdfHeaders.edgeCandidates(layout, content.items, viewport),
       };
       doc.pages.push(pageData);
       const box = document.createElement("section");
@@ -358,7 +331,8 @@ export async function readFile(file, signal, onprogress = () => {}) {
         const previous = group.at(-1);
         if (
           previous &&
-          (Math.abs(previous.xMin - line.xMin) > 50 ||
+          (previous.footnote !== line.footnote ||
+            Math.abs(previous.xMin - line.xMin) > 50 ||
             previous.y - line.y > lineHeight * 2 ||
             line.y > previous.y + lineHeight)
         )
@@ -385,23 +359,28 @@ export async function readFile(file, signal, onprogress = () => {}) {
         ),
         el: box,
       });
+      onprogress(number, pdf.numPages);
+      onpreview(doc);
+      // Yield to Stop and other input between pages, even for cached documents.
+      await awaitActive(signal, () => new Promise(resolve => setTimeout(resolve, 0)));
     }
     if (!doc.blocks.some((b) => b.raw.trim()))
       throw new Error("此 PDF 没有可提取文字，可能需要先进行 OCR。");
-    const bookmarks = await pdf.getOutline();
+    const bookmarks = await awaitActive(signal, () => pdf.getOutline());
     if (bookmarks?.length) {
       const items = [];
       const visit = async (nodes, level = 1) => {
         for (const node of nodes.slice(0, 300)) {
+          throwIfAborted(signal);
           try {
             const dest =
               typeof node.dest === "string"
-                ? await pdf.getDestination(node.dest)
+                ? await awaitActive(signal, () => pdf.getDestination(node.dest))
                 : node.dest;
             if (dest) {
               const pageIndex =
                 typeof dest[0] === "object"
-                  ? await pdf.getPageIndex(dest[0])
+                  ? await awaitActive(signal, () => pdf.getPageIndex(dest[0]))
                   : dest[0];
               const data = doc.pages[pageIndex];
               if (data)
@@ -415,7 +394,9 @@ export async function readFile(file, signal, onprogress = () => {}) {
                   el: data.box,
                 });
             }
-          } catch {}
+          } catch (error) {
+            if (error.name === "AbortError") throw error;
+          }
           if (node.items?.length && level < 4)
             await visit(node.items, level + 1);
         }
@@ -423,19 +404,18 @@ export async function readFile(file, signal, onprogress = () => {}) {
       await visit(bookmarks);
       if (items.length) doc.outline = items;
     }
-    doc.dispose = () => {
-      doc.epoch = (doc.epoch || 0) + 1;
-      doc.observer?.disconnect();
-      for (const p of doc.pages) {
-        p.renderTask?.cancel();
-        p.textLayer?.cancel();
-      }
-      root.remove();
-      void task.destroy();
-    };
+    const repeated = pdfHeaders.recurringEdges(doc.pages);
+    for (const page of doc.pages) {
+      const filtered = pdfHeaders.filterPageHeaders(page, repeated);
+      const retained = new Set(filtered.layout.lines);
+      for (const line of page.layout.lines) line.runningHeader = !retained.has(line);
+    }
+    doc.complete = true;
+    throwIfAborted(signal);
     return doc;
   } catch (error) {
-    await task.destroy();
+    partial?.dispose();
+    await disposeTask();
     throw error;
   } finally {
     signal.removeEventListener("abort", abort);
@@ -496,7 +476,7 @@ export function renderPdf(doc, reader, onrender, onerror) {
       });
       await p.renderTask.promise;
       if (epoch !== doc.epoch) return;
-      p.textLayer = new TextLayer({
+      p.textLayer = new doc.TextLayer({
         textContentSource: p.content,
         container: text,
         viewport,

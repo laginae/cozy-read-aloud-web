@@ -27,6 +27,7 @@ import {
   RotateCw,
   Trash2,
   ScanText,
+  Languages,
 } from "lucide";
 import { ReaderPlayer } from "./player.js";
 import { capturePdfSelection } from "./pdf-selection.js";
@@ -44,6 +45,7 @@ import {
   viewportRectangle,
 } from "./documents.js";
 const icons = {
+  Languages,
   ScanText,
   FolderOpen,
   ClipboardPaste,
@@ -1030,14 +1032,32 @@ document.body.classList.toggle("dark", saved.dark === true);
 document.documentElement.style.setProperty("--reader-size", `${state.fontSize}px`);
 $("highlight").setAttribute("aria-pressed", String(state.highlight));
 $("follow").setAttribute("aria-pressed", String(state.follow));
-const setLanguage = installInterfaceLanguage(saved.language);
+const translateInterface = installInterfaceLanguage(saved.language);
+function setInterfaceLanguage(next) {
+  const language = next === "en" ? "en" : "zh-CN";
+  $("interface-language").value = language;
+  const button = $("language-toggle");
+  button.title = language === "en" ? "切换为简体中文" : "Switch to English";
+  button.setAttribute("aria-label", button.title);
+  button.lang = language === "en" ? "zh-CN" : "en";
+  translateInterface(language);
+}
+setInterfaceLanguage(saved.language);
 const persistPreferences = () => {
   if (!writePreferences(preferenceStorage, $("remember-preferences").checked, {
     ...settings, highlight: state.highlight, follow: state.follow, fontSize: state.fontSize,
     language: $("interface-language").value, dark: $("dark-mode").checked, contextMenu: $("context-enabled").checked,
   }) && $("remember-preferences").checked) notify("偏好无法保存；本次仍可正常使用。");
 };
-$("interface-language").onchange = event => setLanguage(event.target.value);
+$("interface-language").onchange = event => setInterfaceLanguage(event.target.value);
+$("language-toggle").addEventListener("pointerdown", event => {
+  // Keep the document selection when switching language with a pointer.
+  if (event.button === 0) event.preventDefault();
+});
+$("language-toggle").onclick = () => {
+  setInterfaceLanguage($("interface-language").value === "en" ? "zh-CN" : "en");
+  persistPreferences();
+};
 document.addEventListener("change", persistPreferences);
 for (const id of ["highlight", "follow", "font-smaller", "font-larger"])
   $(id).addEventListener("click", persistPreferences);

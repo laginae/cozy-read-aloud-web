@@ -1007,6 +1007,14 @@ body {
     padding: 8px 8px 60px;
   }
 }
+@media (max-width: 480px) {
+  .app-header .brand > span {
+    display: none;
+  }
+  .app-header .brand img {
+    flex-shrink: 0;
+  }
+}
 @media (max-width: 380px) {
   .document-heading h1 {
     max-width: 104px;

@@ -12,7 +12,7 @@ Read Markdown, text-based PDFs, local HTML and plain text in your browser, witho
 2. Press Play for the whole document. To read a passage, select text and choose **只读选中内容** (selection only) or **从选中位置继续** (continue from selection).
 3. Use the outline to navigate or start at a heading/page. On desktop, the optional reading context menu provides the same selection actions.
 
-Choose English or Chinese in Reading settings. System speech works with voices exposed by your browser/operating system; voice availability and network use vary. No API key is needed for system speech.
+Use the language icon in the top toolbar to switch between English and Simplified Chinese, or choose a language in Reading settings. This changes the interface only, not document text, the selected voice or playback. The choice is saved only when **Remember reading preferences** is enabled. System speech works with voices exposed by your browser/operating system; voice availability and network use vary. No API key is needed for system speech.
 
 ## Reading Controls
 

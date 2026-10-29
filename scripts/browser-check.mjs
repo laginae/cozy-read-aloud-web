@@ -420,6 +420,17 @@ try {
     assert.ok(m.bottom <= height + 1);
     layouts.push(m);
     await page.screenshot({ path: `output/web-${width}.png` });
+    await page.locator('#language-toggle').click();
+    await page.getByRole('button', {name:'Reading settings', exact:true}).waitFor();
+    const headerLayout = await page.locator('.app-header').evaluate(header => {
+      const items = [header.querySelector('.brand'), ...header.querySelectorAll('button')].filter(el => el.getClientRects().length);
+      const rects = items.map(el => el.getBoundingClientRect());
+      return { fits: rects.every(r => r.left >= 0 && r.right <= innerWidth), overlap: rects.some((a,i) => rects.slice(i+1).some(b => Math.min(a.right,b.right)>Math.max(a.left,b.left)+1 && Math.min(a.bottom,b.bottom)>Math.max(a.top,b.top)+1)) };
+    });
+    assert.equal(headerLayout.fits,true); assert.equal(headerLayout.overlap,false);
+    await page.screenshot({path:`output/web-language-${width}.png`});
+    await page.locator('#language-toggle').click();
+    await page.getByRole('button', {name:'朗读设置', exact:true}).waitFor();
   }
   await page.getByRole("button", { name: "朗读设置", exact: true }).click();
   await page.locator("#timings-download").scrollIntoViewIfNeeded();
@@ -431,6 +442,9 @@ try {
   await touch.route("**/*", route => route.request().url().startsWith(new URL(base).origin) ? route.continue() : route.abort());
   const touchPage = await touch.newPage();
   await touchPage.goto(base);
+  await touchPage.locator('#language-toggle').tap();
+  await touchPage.getByRole('button', {name:'Reading settings', exact:true}).waitFor();
+  await touchPage.locator('#language-toggle').tap();
   await touchPage.getByRole("button", { name: "朗读设置", exact: true }).tap();
   await touchPage.locator("#prefetch").tap();
   assert.equal(await touchPage.locator("#prefetch").isChecked(), true);
@@ -439,6 +453,23 @@ try {
   assert.deepEqual(errors, []);
   assert.deepEqual(requests, []);
   assert.equal(await page.evaluate(() => localStorage.length), 0);
+  // Interface-only changes must not rebuild the document or restart speech.
+  await page.locator('#play').click();
+  await page.getByRole('button', {name:'暂停朗读', exact:true}).waitFor();
+  const unchanged = await page.evaluate(() => {
+    const range=document.createRange(); range.selectNodeContents(document.querySelector('#reader .prose p'));
+    getSelection().removeAllRanges();getSelection().addRange(range);
+    return {reader:document.querySelector('#reader').innerHTML,title:document.querySelector('#document-title').textContent,selection:getSelection().toString(),utterances:__speech.utterances.length,counter:document.querySelector('#segment-counter').textContent,math:document.querySelector('#math-language').value,voice:document.querySelector('#voice').value};
+  });
+  await page.locator('#language-toggle').click();
+  await page.getByRole('button', {name:'Pause reading', exact:true}).waitFor();
+  assert.equal(await page.locator('#interface-language').inputValue(),'en');
+  assert.deepEqual(await page.evaluate(()=>({reader:document.querySelector('#reader').innerHTML,title:document.querySelector('#document-title').textContent,selection:getSelection().toString(),utterances:__speech.utterances.length,counter:document.querySelector('#segment-counter').textContent,math:document.querySelector('#math-language').value,voice:document.querySelector('#voice').value})),unchanged);
+  await page.locator('#language-toggle').focus();await page.keyboard.press('Enter');
+  await page.getByRole('button', {name:'暂停朗读', exact:true}).waitFor();
+  assert.equal(await page.locator('#interface-language').inputValue(),'zh-CN');
+  assert.equal(await page.evaluate(()=>localStorage.length),0);
+  await page.locator('#stop').click();
   await page.locator('#settings-open').click();
   await page.locator('#interface-language').selectOption('en');
   await page.getByRole('heading', { name: 'Reading settings', exact: true }).waitFor();
@@ -449,8 +480,15 @@ try {
   assert.equal(preferences.values.mathMode, 'skip');
   assert.ok(!JSON.stringify(preferences).includes('public-test-placeholder'));
   assert.equal(preferences.values.consent, undefined);
+  await page.getByRole('button', {name:'Close settings', exact:true}).click();
+  await page.locator('#language-toggle').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('cozy-reading-preferences-v1')).values.language),'zh-CN');
+  await page.locator('#language-toggle').click();
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('cozy-reading-preferences-v1')).values.language),'en');
+  await page.locator('#settings-open').click();
   await page.screenshot({ path: 'output/web-english-320.png' });
   await page.reload();
+  await page.getByRole('button', {name:'切换为简体中文', exact:true}).waitFor();
   await page.locator('#settings-open').click();
   await page.getByRole('heading', { name: 'Reading settings', exact: true }).waitFor();
   assert.equal(await page.locator('#math-mode').inputValue(), 'skip');
@@ -468,6 +506,9 @@ try {
         pdfSelection: true,
         progressivePreviewAndCancel: true,
         englishAndOptInPreferences: true,
+        toolbarLanguageToggle: true,
+        languageSwitchKeepsDocumentSelectionAndPlayback: true,
+        languageToggleTouchAndKeyboard: true,
         partialHighlight: precision,
         afterZoom: true,
         rightColumnContinuation: true,

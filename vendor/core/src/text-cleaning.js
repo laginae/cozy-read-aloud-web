@@ -140,8 +140,10 @@ function formatMarkdownTableForSpeech(headers, rows, options = {}) {
   const tableText = headers.concat(...rows).join(' ');
   if (options.academicTableMode && skipTable(headers, rows, options)) return omission('table', options, tableText);
   const useChineseLabels = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/.test(tableText);
+  const repeatHeaders = options.academicTableRepeatHeaders !== false;
   const output = [];
-  const headerLabels = headers.map((header) => header.trim()).filter(Boolean);
+  const headerLabels = headers.map((header, index) => String(header ?? '').trim()
+    || (!repeatHeaders ? (useChineseLabels ? `第 ${index + 1} 列` : `Column ${index + 1}`) : '')).filter(Boolean);
 
   if (headerLabels.length) {
     output.push(`${useChineseLabels ? '表格列' : 'Table columns'}: ${headerLabels.join('; ')}${useChineseLabels ? '。' : '.'}`);
@@ -151,12 +153,13 @@ function formatMarkdownTableForSpeech(headers, rows, options = {}) {
     const values = [];
     const cellCount = Math.max(headers.length, cells.length);
     for (let cellIndex = 0; cellIndex < cellCount; cellIndex += 1) {
-      const cell = String(cells[cellIndex] || '').trim();
+      const cell = String(cells[cellIndex] ?? '').trim();
       if (!cell) {
+        if (!repeatHeaders) values.push(useChineseLabels ? '空' : 'empty');
         continue;
       }
-      const header = String(headers[cellIndex] || '').trim();
-      values.push(header ? `${header}: ${cell}` : cell);
+      const header = String(headers[cellIndex] ?? '').trim();
+      values.push(repeatHeaders && header ? `${header}: ${cell}` : cell);
     }
 
     if (values.length) {
@@ -419,6 +422,7 @@ module.exports = {
   normalizeLineBreaks,
   normalizeMathReadingLanguage,
   sanitizeTextForSpeech,
+  formatTableForSpeech: formatMarkdownTableForSpeech,
   sanitizeAcademicTextForSpeech,
   sanitizeLatexForSpeech,
   verbalizeShortLatex,

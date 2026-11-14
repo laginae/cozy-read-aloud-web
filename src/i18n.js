@@ -1,4 +1,6 @@
 const pairs = [
+  ['表格朗读策略', 'Table reading'], ['智能：跳过长数字表格', 'Smart: skip long numeric tables'],
+  ['完整朗读表格', 'Read all tables'], ['跳过已识别表格', 'Skip recognized tables'], ['每行重复表头', 'Repeat table headers for each row'],
   ['图片与扫描页 OCR','OCR for images and scanned pages'],
   ['启用本机 OCR（按需加载资源）','Enable local OCR (load resources on demand)'],
   ['请先在设置中启用本机 OCR。','Enable local OCR in settings first.'],

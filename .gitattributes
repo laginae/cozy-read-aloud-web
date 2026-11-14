@@ -1,3 +1,5 @@
 src/portable-ocr.cjs text eol=lf
 src/portable-ocr-form.cjs text eol=lf
 scripts/ocr-resources.cjs text eol=lf
+vendor/** -text
+test/pdf-golden-fixtures.cjs -text

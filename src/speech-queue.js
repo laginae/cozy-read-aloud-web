@@ -2,12 +2,15 @@ import speechText from "../vendor/mobile/speech-text.js";
 import chunker from "../vendor/mobile/sentence-chunker.js";
 import pdfSpeech from "../vendor/mobile/pdf-speech.js";
 import pdfMath from "../vendor/mobile/pdf-speech/pdf-math.js";
+import core from '@laginae/note-reader-core';
 
 export function formulaOptions(settings, text) {
   return {
     academicMathMode: settings.academic ? settings.mathMode : "all",
     academicMathStyle: settings.mathMode === "all" ? "verbose" : "concise",
     academicSkipNotice: true,
+    academicTableMode: settings.academic ? (settings.tableMode || 'smart') : 'all',
+    academicTableRepeatHeaders: settings.academicTableRepeatHeaders !== false,
     mathReadingLanguage: settings.mathLanguage === "auto"
       ? /[\u3400-\u9fff]/.test(text) ? "chinese" : "english"
       : settings.mathLanguage,
@@ -32,6 +35,10 @@ export function queueBlocks(doc, blocks, settings) {
       }
     }
     const options = formulaOptions(settings, doc.languageText || raw);
+    if (block.table && !block.explicitSelection) {
+      const table = core.formatTableForSpeech(block.table.headers, block.table.rows, options);
+      raw = [block.table.caption, table].filter(Boolean).join('\n');
+    }
     if (block.pageData && settings.academic) {
       const p = block.pageData;
       if (!pageOptions.has(p)) pageOptions.set(p, { ...p, mathChanges: pdfMath.pdfMathChanges(p.layout, p.items, options, p.fonts) });

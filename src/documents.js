@@ -6,6 +6,7 @@ import chunker from "../vendor/mobile/sentence-chunker.js";
 import pdfMath from "../vendor/mobile/pdf-speech/pdf-math.js";
 import { mapPdfItems, selectedPdfBlocks, singleItemLayout } from "./pdf-selection.js";
 import { formulaOptions, queueBlocks } from "./speech-queue.js";
+import { readTableData, rangeReadingText } from './table-data.js';
 import { loadPdfRuntime } from "./pdf-runtime.js";
 import { awaitActive, countPdfText, throwIfAborted } from "./import-lifecycle.js";
 import pdfHeaders from "../vendor/mobile/pdf-headers.js";
@@ -119,8 +120,9 @@ export function textDocument(source, name = "未命名文字", kind = "md") {
     }
     flush();
   }
-  let elements = [...root.querySelectorAll(selector)].filter(
-    (el) => !el.querySelector(selector) && el.textContent.trim(),
+  const tables = new Map([...root.querySelectorAll('table')].map(table => [table, readTableData(table)]).filter(([, data]) => data));
+  let elements = [...root.querySelectorAll(selector + ',table')].filter(
+    el => tables.has(el) || (!tables.has(el.closest('table')) && !el.querySelector(selector) && el.textContent.trim()),
   );
   if (!elements.length && root.textContent.trim()) {
     const p = document.createElement("p");
@@ -135,7 +137,8 @@ export function textDocument(source, name = "未命名文字", kind = "md") {
       return {
         raw: el.textContent.trim(),
         el,
-        kind: el.tagName === "PRE" ? "code" : "text",
+        kind: tables.has(el) ? 'table' : el.tagName === "PRE" ? "code" : "text",
+        ...(tables.has(el) ? { table: tables.get(el) } : {}),
       };
     });
   const outline = blocks.flatMap((b, i) =>
@@ -176,7 +179,7 @@ export function selectionQueue(doc, snapshot, settings, from = false) {
       part.setStart(range.startContainer, range.startOffset);
     if (b.el.contains(range.endContainer))
       part.setEnd(range.endContainer, range.endOffset);
-    selected.push({ raw: part.toString(), index: i });
+    selected.push({ raw: rangeReadingText(part), index: i, explicitSelection: true });
   }
   if (from) {
     const first = indices[0],
@@ -188,24 +191,13 @@ export function selectionQueue(doc, snapshot, settings, from = false) {
     selected.splice(
       0,
       selected.length,
-      { raw: part.toString(), index: first },
+      { raw: rangeReadingText(part), index: first, explicitSelection: true },
       ...doc.blocks
         .slice(first + 1)
-        .map((b, j) => ({ raw: b.raw, index: first + 1 + j })),
+        .map((b, j) => ({ ...b, index: first + 1 + j })),
     );
   }
-  return selected.flatMap((b) =>
-    chunker
-      .splitTextForSpeechChunks(
-        speechText.sanitizeAcademicTextForSpeech(
-          b.raw,
-          formulaOptions(settings, b.raw),
-        ),
-        [240],
-      )
-      .filter(Boolean)
-      .map((text) => ({ text, block: b.index, targets: [b.index] })),
-  );
+  return queueBlocks(doc, selected, settings);
 }
 export async function readFile(file, signal, onprogress = () => {}, onpreview = () => {}) {
   throwIfAborted(signal);

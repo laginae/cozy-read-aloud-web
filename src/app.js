@@ -92,10 +92,12 @@ const settings = {
   academic: true,
   mathMode: "smart",
   mathLanguage: "auto",
+  tableMode: 'smart',
+  academicTableRepeatHeaders: true,
   skipHeaders: true,
   footnoteMode: "body",
 };
-for (const key of ["speed", "volume", "academic", "mathMode", "mathLanguage", "skipHeaders", "footnoteMode"])
+for (const key of ["speed", "volume", "academic", "mathMode", "mathLanguage", "skipHeaders", "footnoteMode", 'tableMode', 'academicTableRepeatHeaders'])
   if (saved[key] !== undefined) settings[key] = saved[key];
 const state = {
   docs: [],
@@ -871,6 +873,8 @@ for (const [id, key] of [
   ["academic", "academic"],
   ["math-mode", "mathMode"],
   ["math-language", "mathLanguage"],
+  ['table-mode', 'tableMode'],
+  ['table-repeat-headers', 'academicTableRepeatHeaders'],
   ["pdf-headers", "skipHeaders"],
   ["pdf-footnotes", "footnoteMode"],
 ])
@@ -1022,6 +1026,7 @@ window.addEventListener("keydown", (e) => {
 globalThis.speechSynthesis?.addEventListener("voiceschanged", refreshVoices);
 for (const [id, value] of Object.entries({ speed: settings.speed, volume: settings.volume,
   academic: settings.academic, "math-mode": settings.mathMode, "math-language": settings.mathLanguage,
+  'table-mode': settings.tableMode, 'table-repeat-headers': settings.academicTableRepeatHeaders,
   "pdf-headers": settings.skipHeaders, "pdf-footnotes": settings.footnoteMode,
   "dark-mode": saved.dark || false, "context-enabled": saved.contextMenu ?? true,
   "remember-preferences": saved.enabled === true, "interface-language": saved.language || "zh-CN" })) {

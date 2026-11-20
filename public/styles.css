@@ -1057,3 +1057,7 @@ body {
 .cozy-ocr-preview { display: block; width: 100%; height: 30dvh; min-height: 160px; resize: vertical; box-sizing: border-box; line-height: 1.6; }
 .cozy-ocr-filename { overflow-wrap: anywhere; }
 .cozy-ocr-note { font-size: 13px; color: var(--text-muted, #666); }
+#academic-preview { grid-column: 1 / -1; min-width: 0; }
+#academic-preview summary { cursor: pointer; }
+#academic-preview dl { display: grid; grid-template-columns: minmax(5em, 1fr) minmax(0, 2fr); gap: 6px 12px; }
+#academic-preview dd { margin: 0; overflow-wrap: anywhere; white-space: pre-line; }

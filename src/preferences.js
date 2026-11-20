@@ -1,5 +1,6 @@
 export const PREFERENCE_KEY = 'cozy-reading-preferences-v1';
 const enums = { language: ['zh-CN', 'en'], mathMode: ['smart', 'skip', 'all'], tableMode: ['smart', 'skip', 'all'],
+  academicFunctionStyle: ['of', 'compact'], academicIntervalStyle: ['precise', 'range'],
   mathLanguage: ['auto', 'chinese', 'english'], footnoteMode: ['body', 'inline', 'footnotes'] };
 const booleans = ['academic', 'skipHeaders', 'highlight', 'follow', 'dark', 'contextMenu', 'academicTableRepeatHeaders'];
 export function safePreferences(input = {}) {

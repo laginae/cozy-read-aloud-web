@@ -8,6 +8,8 @@ export function formulaOptions(settings, text) {
   return {
     academicMathMode: settings.academic ? settings.mathMode : "all",
     academicMathStyle: settings.mathMode === "all" ? "verbose" : "concise",
+    academicFunctionStyle: settings.academicFunctionStyle === 'compact' ? 'compact' : 'of',
+    academicIntervalStyle: settings.academicIntervalStyle === 'range' ? 'range' : 'precise',
     academicSkipNotice: true,
     academicTableMode: settings.academic ? (settings.tableMode || 'smart') : 'all',
     academicTableRepeatHeaders: settings.academicTableRepeatHeaders !== false,
@@ -19,6 +21,9 @@ export function formulaOptions(settings, text) {
 export function buildQueue(doc, settings) {
   if (doc.complete === false) return [];
   return queueBlocks(doc, doc.blocks.map((block, index) => ({ ...block, index })), settings);
+}
+export function formatPreviewSample(sample, settings) {
+  return queueBlocks({languageText:sample}, [{raw:sample,index:0,kind:'paragraph'}], settings).map(item=>item.text).join(' ');
 }
 export function queueBlocks(doc, blocks, settings) {
   const pageOptions = new Map();

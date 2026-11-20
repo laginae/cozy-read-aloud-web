@@ -229,6 +229,16 @@ try {
   await page
     .getByRole("combobox", { name: "朗读范围", exact: true })
     .selectOption("selection");
+  await page.locator('#settings-open').click();
+  await page.locator('#academic-preview summary').click();
+  const previewBefore=await page.locator('#academic-preview dd').allTextContents();
+  await page.locator('#function-style').selectOption('compact');
+  await page.locator('#interval-style').selectOption('range');
+  await page.locator('#table-repeat-headers').uncheck();
+  const previewAfter=await page.locator('#academic-preview dd').allTextContents();
+  assert.equal(previewAfter.length,3);previewAfter.forEach((value,i)=>assert.notEqual(value,previewBefore[i]));
+  await page.keyboard.press('Escape');
+  assert.equal(await page.locator('#scope').inputValue(),'selection');
   await page.getByRole("button", { name: "开始朗读", exact: true }).click();
   assert.equal(
     await page.evaluate(() => window.__speech.utterances.at(-1).text),

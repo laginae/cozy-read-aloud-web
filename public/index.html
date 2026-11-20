@@ -359,6 +359,9 @@
           <legend>阅读</legend>
           <label class="field">表格朗读策略<select id="table-mode"><option value="smart">智能：跳过长数字表格</option><option value="all">完整朗读表格</option><option value="skip">跳过已识别表格</option></select></label>
           <label class="check"><input id="table-repeat-headers" type="checkbox" checked /><span>每行重复表头</span></label>
+          <label class="field">简单函数读法<select id="function-style"><option value="of">保留 of</option><option value="compact">省略 of</option></select></label>
+          <label class="field">区间读法<select id="interval-style"><option value="precise">保留端点条件</option><option value="range">只读起点到终点</option></select></label>
+          <details id="academic-preview"><summary>实际读法预览（本地文字）</summary></details>
           <label class="check"><input id="pdf-headers" type="checkbox" checked /><span>跳过重复 PDF 页眉页脚</span></label>
           <label class="field">PDF 脚注<select id="pdf-footnotes"><option value="body">正文（略过脚注）</option><option value="inline">正文与脚注</option><option value="footnotes">仅脚注</option></select></label>
           <label class="check"

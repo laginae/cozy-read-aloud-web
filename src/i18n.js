@@ -1,4 +1,7 @@
 const pairs = [
+  ['简单函数读法','Simple function speech'], ['保留 of','Keep of'], ['省略 of','Omit of'],
+  ['区间读法','Interval speech'], ['保留端点条件','Preserve endpoints'], ['只读起点到终点','Lower to upper bound'],
+  ['实际读法预览（本地文字）','Reading preview (local text)'],
   ['表格朗读策略', 'Table reading'], ['智能：跳过长数字表格', 'Smart: skip long numeric tables'],
   ['完整朗读表格', 'Read all tables'], ['跳过已识别表格', 'Skip recognized tables'], ['每行重复表头', 'Repeat table headers for each row'],
   ['图片与扫描页 OCR','OCR for images and scanned pages'],
@@ -114,7 +117,7 @@ export function english(text) {
 export function installInterfaceLanguage(initial = 'zh-CN') {
   let language = initial;
   const originals = new WeakMap();
-  const excluded = node => node.parentElement?.closest('#reader, #paste-text, #document-title, .cozy-ocr-form, .document-button span, #outline button:not(.outline-play)');
+  const excluded = node => node.parentElement?.closest('#reader, #paste-text, #document-title, #academic-preview dl, .cozy-ocr-form, .document-button span, #outline button:not(.outline-play)');
   function update() {
     document.documentElement.lang = language;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

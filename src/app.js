@@ -30,6 +30,9 @@ import {
   Languages,
 } from "lucide";
 import { ReaderPlayer } from "./player.js";
+import { bindReadingPreview } from './reading-preview.js';
+import { formatPreviewSample } from './speech-queue.js';
+import { passageSeek } from './passage-seek.js';
 import { capturePdfSelection } from "./pdf-selection.js";
 import { exportAudio, exportSummary } from "./audio-export.js";
 import { followTarget, followDelta } from "./follow.js";
@@ -94,10 +97,11 @@ const settings = {
   mathLanguage: "auto",
   tableMode: 'smart',
   academicTableRepeatHeaders: true,
+  academicFunctionStyle: 'of', academicIntervalStyle: 'precise',
   skipHeaders: true,
   footnoteMode: "body",
 };
-for (const key of ["speed", "volume", "academic", "mathMode", "mathLanguage", "skipHeaders", "footnoteMode", 'tableMode', 'academicTableRepeatHeaders'])
+for (const key of ["speed", "volume", "academic", "mathMode", "mathLanguage", "skipHeaders", "footnoteMode", 'tableMode', 'academicTableRepeatHeaders','academicFunctionStyle','academicIntervalStyle'])
   if (saved[key] !== undefined) settings[key] = saved[key];
 const state = {
   docs: [],
@@ -248,14 +252,17 @@ function locate(el) {
   el.classList.add("is-located");
   setTimeout(() => el.classList.remove("is-located"), 1100);
 }
-function rebuild() {
+function rebuild(resetScope = false) {
   if (!state.current) return;
-  state.selection = null;
+  if (resetScope) {
+    state.selection = null; $("scope").value = "all"; $("selection-status").textContent = "";
+  }
   state.queueSelection = null;
-  state.queueScope = "all";
-  $("selection-status").textContent = "";
-  $("scope").value = "all";
-  player.load(buildQueue(state.current, settings));
+  state.queueScope = null;
+  // Keep a pending selection narrow: validate it when Play is pressed.
+  const whole = $("scope").value === "all";
+  player.load(whole ? buildQueue(state.current, settings) : []);
+  if (whole) state.queueScope = 'all';
 }
 function activate(doc) {
   const retainedScroll = doc === state.current ? $("reader").scrollTop : 0;
@@ -285,7 +292,7 @@ function activate(doc) {
     $("scope")
       .querySelectorAll("option")
       .forEach((o) => (o.disabled = false));
-    rebuild();
+    rebuild(true);
     if (doc.kind === "pdf")
       renderPdf(doc, $("reader"), () => highlight(), notify);
   } else {
@@ -333,6 +340,7 @@ function addDocument(doc) {
   state.docs.push(doc);
   activate(doc);
 }
+const updatePassageSlider = passageSeek($('progress'),()=>player.items,value=>player.jump(value));
 function renderPlayer() {
   const labels = {
     idle: "已停止",
@@ -349,9 +357,7 @@ function renderPlayer() {
   const count = player?.items.length || 0;
   $("segment-counter").textContent =
     `${count ? player.index + 1 : 0} / ${count}`;
-  $("progress").max = String(Math.max(0, count - 1));
-  $("progress").value = String(player?.index || 0);
-  $("progress").disabled = !count;
+  updatePassageSlider(player?.index || 0,count);
   const running = ["loading", "playing"].includes(player?.status);
   const label = running
     ? "暂停朗读"
@@ -809,7 +815,6 @@ $("export-confirm").onclick = async () => {
     $("export-confirm").disabled = false;
   }
 };
-$("progress").onchange = (e) => player.jump(Number(e.target.value));
 $("speed").onchange = (e) => player.setSpeed(Number(e.target.value));
 $("volume").oninput = (e) => {
   player.setVolume(Number(e.target.value));
@@ -817,8 +822,7 @@ $("volume").oninput = (e) => {
     `${Math.round(Number(e.target.value) * 100)}%`;
 };
 $("scope").onchange = () => {
-  if ($("scope").value === "all") rebuild();
-  else player.stop();
+  rebuild();
 };
 $("highlight").onclick = () => {
   state.highlight = !state.highlight;
@@ -875,12 +879,15 @@ for (const [id, key] of [
   ["math-language", "mathLanguage"],
   ['table-mode', 'tableMode'],
   ['table-repeat-headers', 'academicTableRepeatHeaders'],
+  ['function-style','academicFunctionStyle'], ['interval-style','academicIntervalStyle'],
   ["pdf-headers", "skipHeaders"],
   ["pdf-footnotes", "footnoteMode"],
 ])
   $(id).onchange = (e) => {
     settings[key] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     $("math-mode").disabled = !settings.academic;
+    $("function-style").disabled = $("interval-style").disabled = settings.mathMode === 'all';
+    refreshPreview();
     rebuild();
   };
 $("dark-mode").onchange = (e) =>
@@ -1027,6 +1034,7 @@ globalThis.speechSynthesis?.addEventListener("voiceschanged", refreshVoices);
 for (const [id, value] of Object.entries({ speed: settings.speed, volume: settings.volume,
   academic: settings.academic, "math-mode": settings.mathMode, "math-language": settings.mathLanguage,
   'table-mode': settings.tableMode, 'table-repeat-headers': settings.academicTableRepeatHeaders,
+  'function-style':settings.academicFunctionStyle, 'interval-style':settings.academicIntervalStyle,
   "pdf-headers": settings.skipHeaders, "pdf-footnotes": settings.footnoteMode,
   "dark-mode": saved.dark || false, "context-enabled": saved.contextMenu ?? true,
   "remember-preferences": saved.enabled === true, "interface-language": saved.language || "zh-CN" })) {
@@ -1038,6 +1046,8 @@ document.documentElement.style.setProperty("--reader-size", `${state.fontSize}px
 $("highlight").setAttribute("aria-pressed", String(state.highlight));
 $("follow").setAttribute("aria-pressed", String(state.follow));
 const translateInterface = installInterfaceLanguage(saved.language);
+const refreshPreview = bindReadingPreview($('academic-preview'),()=>settings,()=>$('interface-language').value,formatPreviewSample);
+$("function-style").disabled = $("interval-style").disabled = settings.mathMode === 'all';
 function setInterfaceLanguage(next) {
   const language = next === "en" ? "en" : "zh-CN";
   $("interface-language").value = language;
@@ -1046,6 +1056,7 @@ function setInterfaceLanguage(next) {
   button.setAttribute("aria-label", button.title);
   button.lang = language === "en" ? "zh-CN" : "en";
   translateInterface(language);
+  refreshPreview();
 }
 setInterfaceLanguage(saved.language);
 const persistPreferences = () => {

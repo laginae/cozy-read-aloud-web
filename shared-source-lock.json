@@ -1,20 +1,20 @@
 {
   "schema": 1,
-  "coreVersion": "0.3.1",
+  "coreVersion": "0.3.2",
   "files": [
     {
       "path": "vendor/core/index.js",
       "repository": "note-reader-core",
       "source": "index.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
-      "sha256": "829402b6a66e705312e474e7880faefe2e8f9b383571d880ffdf7db448605a28"
+      "sha256": "8a5ada32053c643341721a1745d32e88a3aefab02f9f499e377bef4dfab5966b"
     },
     {
       "path": "vendor/core/LICENSE",
       "repository": "note-reader-core",
       "source": "LICENSE",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "a9d2578d42f61df71a23238c9d2526fda8634a0bfed6bf08580de5a7f87edbbb"
     },
@@ -22,15 +22,23 @@
       "path": "vendor/core/package.json",
       "repository": "note-reader-core",
       "source": "package.json",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
-      "sha256": "dcb89f1e583a8e6011d7567753a64d6dbc210dd1aa3da62b1f7a0527139bc288"
+      "sha256": "460f5c8b9c265eee82e0e18c1d78e218d718ca9a422430c989028d9648e93918"
+    },
+    {
+      "path": "vendor/core/src/academic-preview.js",
+      "repository": "note-reader-core",
+      "source": "src/academic-preview.js",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
+      "unreleasedChange": false,
+      "sha256": "34d8b1933a25113dd418ea798f7e9ab2a952e526eeff2bc0d285a9b7d9a14b14"
     },
     {
       "path": "vendor/core/src/academic-speech.js",
       "repository": "note-reader-core",
       "source": "src/academic-speech.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "d7b64609a008862e381feacf99c9a615a42eb4d5e49f368629104236c7600790"
     },
@@ -38,7 +46,7 @@
       "path": "vendor/core/src/math-collections.js",
       "repository": "note-reader-core",
       "source": "src/math-collections.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "ae83448da7be59f1c68258a7a3b915c14167fb70200801b8a01adba8f0285865"
     },
@@ -46,7 +54,7 @@
       "path": "vendor/core/src/math-fractions.js",
       "repository": "note-reader-core",
       "source": "src/math-fractions.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "7cf748d297ce531f013b2b08b486f3bd5bfaabcd5b4bdb0364648e14b4d415bb"
     },
@@ -54,7 +62,7 @@
       "path": "vendor/core/src/math-functions.js",
       "repository": "note-reader-core",
       "source": "src/math-functions.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "b8efcb934e0e2b7cb807cfb93b43a6ada628598231390045c71da6a4b1d62307"
     },
@@ -62,7 +70,7 @@
       "path": "vendor/core/src/math-symbols.js",
       "repository": "note-reader-core",
       "source": "src/math-symbols.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "c3eeeca5097acbff11f1cacf5e5d007882f01ad527ae6616e4df981763ed4d3c"
     },
@@ -70,7 +78,7 @@
       "path": "vendor/core/src/math-variable-labels.js",
       "repository": "note-reader-core",
       "source": "src/math-variable-labels.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "fbbbc76f71eccc7b964dfb9f7ebd255f84028293e13e1b436abf815591cb9b83"
     },
@@ -78,7 +86,7 @@
       "path": "vendor/core/src/pdf-layout.js",
       "repository": "note-reader-core",
       "source": "src/pdf-layout.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "f764d8f6696dabcdb58ea1ff5dd16ccefb25121c0840ba3b1a7a2e95fbe40c66"
     },
@@ -86,7 +94,7 @@
       "path": "vendor/core/src/playback-queue.js",
       "repository": "note-reader-core",
       "source": "src/playback-queue.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "72da68a951f25d8f55ff0e8ae5c2b59075a242c5af80e772525f48a281274e03"
     },
@@ -94,7 +102,7 @@
       "path": "vendor/core/src/reading-position.js",
       "repository": "note-reader-core",
       "source": "src/reading-position.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "dc76c7fef8d1043ee9984caffaeb29a1c18431655daf490888897a98e97992d3"
     },
@@ -102,7 +110,7 @@
       "path": "vendor/core/src/semantic-chunker.js",
       "repository": "note-reader-core",
       "source": "src/semantic-chunker.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "9cceab68fbc2f4423fae0e39a97ebe76f81d929080dc87f52b68e5f412e9286c"
     },
@@ -110,7 +118,7 @@
       "path": "vendor/core/src/structured-math.js",
       "repository": "note-reader-core",
       "source": "src/structured-math.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "ca3fd95eb95a4e9bd22a7fe8e5039344fc3d47ff77b82dd448c6fbd2de928c36"
     },
@@ -118,7 +126,7 @@
       "path": "vendor/core/src/task-state.js",
       "repository": "note-reader-core",
       "source": "src/task-state.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "803197719eaa48695c33c1f1c6ec992297d26906e1bc56ef309afd2c6526a9f8"
     },
@@ -126,7 +134,7 @@
       "path": "vendor/core/src/text-cleaning.js",
       "repository": "note-reader-core",
       "source": "src/text-cleaning.js",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "3c3e917fb0737d7af605703ee461e15f091c63ed662a2f8996098edcbb0f3e13"
     },
@@ -134,7 +142,7 @@
       "path": "vendor/core/test/math-golden-fixtures.cjs",
       "repository": "note-reader-core",
       "source": "test/math-golden-fixtures.cjs",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "2a881c088b8c59fdfd637bc9af9f5c2f599224df8581a1ad73c99b88ee92d6a2"
     },
@@ -142,7 +150,7 @@
       "path": "vendor/core/test/pdf-golden-fixtures.cjs",
       "repository": "note-reader-core",
       "source": "test/pdf-golden-fixtures.cjs",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "c088a29a7f3cb65e3d9f7b129e43b0e1cead2a9e73234aa748741e9e1730a79a"
     },
@@ -270,7 +278,7 @@
       "path": "test/pdf-golden-fixtures.cjs",
       "repository": "note-reader-core",
       "source": "test/pdf-golden-fixtures.cjs",
-      "baseRevision": "f0e6195fdda69e49c1bb54c21c0187eb005b6322",
+      "baseRevision": "18ffde5ef9b723a1244970e35d39e4ea70602c48",
       "unreleasedChange": false,
       "sha256": "c088a29a7f3cb65e3d9f7b129e43b0e1cead2a9e73234aa748741e9e1730a79a"
     }

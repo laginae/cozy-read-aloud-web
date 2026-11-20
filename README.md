@@ -16,6 +16,8 @@ Use the language icon in the top toolbar to switch between English and Simplifie
 
 ## Reading Controls
 
+- **0.4.2:** Compare function, interval and table wording in the local settings preview. Changing a reading preference keeps a selection scoped; Play asks for a new selection if it is no longer valid.
+
 - **0.4.1 tables:** **Reading settings > Repeat table headers for each row** is on by default. Disable it to hear column headings once, then row numbers and values. Smart / All / Skip remains independent; unknown PDF layouts and partial selections are not expanded. [Release notes](RELEASE-0.4.1.md).
 - Markdown, PDF, HTML and TXT import; paste, drag-and-drop and up to eight open documents.
 - PDF text selection and continuation use original text-item positions, including repeated passages. Selections survive zoom changes. No OCR is performed.

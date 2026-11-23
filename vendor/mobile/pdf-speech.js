@@ -1,6 +1,6 @@
 'use strict';
 
-const { applyPdfMathChanges } = require('./pdf-speech/pdf-math');
+const { applyPdfMathChanges, normalizePdfReferenceRows } = require('./pdf-speech/pdf-math');
 
 // Match only a unique, complete selection. Whitespace differences from the PDF
 // text layer are harmless; uncertain matches must never expand the read scope.
@@ -44,14 +44,23 @@ function applyRange(text, page) {
       if (indexed(row).text === indexed(change.source).text) exactLines.push({ start: offset, end: offset + row.length });
       offset += row.length + 1;
     }
-    const line = (exactLines.length === 1 ? exactLines[0] : null) || uniqueRange(source, change.source)
+    // Repeated limits or indices can be identical complete rows. Use their
+    // original layout order only when all occurrences survived text filtering.
+    let exact = exactLines.length === 1 ? exactLines[0] : null;
+    if (!exact && exactLines.length > 1) {
+      const same = page.layout?.lines?.filter(l=>l.text === change.source) || [];
+      const which = same.findIndex(l=>l.y === change.y && l.xMin === change.xMin);
+      if (which >= 0 && same.length === exactLines.length) exact = exactLines[which];
+    }
+    const line = exact || uniqueRange(source, change.source)
       || (change.joinedSource && /[A-Za-z]-$/.test(change.source)
         ? uniqueRange(source, change.source.slice(0, -1)) : null);
     if (!line) continue;
     // Each run maps back to the original PDF text, not the spoken expansion.
     for (const edit of change.edits || []) {
       const fragment = change.source.slice(edit.start, edit.end);
-      const local = uniqueRange(source.slice(line.start, line.end), fragment);
+      const raw = source.slice(line.start, line.end);
+      const local = raw === change.source ? {start:edit.start,end:edit.end} : uniqueRange(raw, fragment);
       if (!local) continue;
       const start = line.start + local.start, end = line.start + local.end;
       if (start >= range.end || end <= range.start) continue;
@@ -76,13 +85,18 @@ function applyRange(text, page) {
   return (result + source.slice(cursor, range.end)).replace(/[ \t]+/g, ' ').trim();
 }
 
+function speechText(text) {
+  // Normalize styled letters only after locating the original UTF-16 offsets.
+  return normalizePdfReferenceRows(String(text)).replace(/[\u{1d400}-\u{1d7ff}]/gu,c=>c.normalize('NFKC'));
+}
+
 function preparePdfSpeech(text, page) {
-  if (!page?.mathChanges?.length) return text;
+  if (!page?.mathChanges?.length) return speechText(text);
   const result = applyRange(text, page);
-  if (result !== null) return result;
+  if (result !== null) return speechText(result);
   // Header/footnote/outline filtering may produce disjoint ranges.
-  return String(text).split('\n').map(line => applyRange(line, page)
-    ?? applyPdfMathChanges(line, page.mathChanges)).join('\n').trim();
+  return speechText(String(text).split('\n').map(line => applyRange(line, page)
+    ?? applyPdfMathChanges(line, page.mathChanges)).join('\n').trim());
 }
 
 function preparePdfSelection(text, pages) {

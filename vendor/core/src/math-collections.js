@@ -53,20 +53,21 @@ function members(source) {
   if (stack.length) return null;
   result.push(source.slice(start)); return result;
 }
-function bracketMathSpeech(value, { zh, brief, context, rangeOnly = false, literalSets = false }, render) {
+function bracketMathSpeech(value, { zh, brief, context, rangeOnly = false, natural = false, literalSets = false }, render) {
   let text = value.replace(/\\(?:left|right)\b/g, '').trim();
   const speak = entry => {
     const base = entry.kind === 'infinity' ? (zh ? '无穷' : 'infinity') : render(entry.base);
     if (!base || /^(?:Formula\.|公式。)$/.test(base)) return null;
     return (entry.sign ? (zh ? entry.sign === '+' ? '正' : '负' : entry.sign === '+' ? 'plus ' : 'minus ') : '') + base;
   };
-  let prefix = '', membership = false;
+  let prefix = '', membership = false, member = '';
   const relation = text.match(/^(.+?)\s*(\\notin\b|\\in\b|=)\s*(.+)$/);
   if (relation) {
     const subject = atom(relation[1]);
     if (!subject || subject.kind !== 'variable' || subject.sign) return null;
     const spoken = speak(subject); if (!spoken) return null;
     membership = relation[2] !== '=';
+    if (relation[2] === '\\in') member = spoken;
     prefix = spoken + (relation[2] === '=' ? (zh ? ' 等于 ' : ' equals ')
       : relation[2] === '\\in' ? (zh ? ' 属于 ' : ' belongs to ')
         : (zh ? ' 不属于 ' : ' does not belong to '));
@@ -100,6 +101,13 @@ function bracketMathSpeech(value, { zh, brief, context, rangeOnly = false, liter
       : left ? ['左闭右开区间', 'left-closed, right-open interval'] : ['左开右闭区间', 'left-open, right-closed interval'];
     if (!brief) return lead + kind[zh ? 0 : 1] + (zh ? '，' : ', ') + range;
     if (rangeOnly) return prefix + range;
+    // Only positive membership becomes a conjunction. Never invert a negated interval.
+    if (natural && member && !(left && right)) {
+      const lowerBound = (zh ? (left ? '不小于 ' : '大于 ') : (left ? 'at least ' : 'greater than ')) + spoken[0];
+      const upperBound = (zh ? (right ? '不超过 ' : '小于 ') : (right ? 'at most ' : 'less than ')) + spoken[1];
+      const bounds = [lower.kind !== 'infinity' && lowerBound, upper.kind !== 'infinity' && upperBound].filter(Boolean);
+      if (bounds.length) return member + (zh ? ' ' : ' is ') + bounds.join(zh ? ' 且' : ' and ');
+    }
     if (!prefix && upper.kind === 'infinity' && lower.kind !== 'infinity') return zh ? (left ? spoken[0] + ' 及以上' : '大于 ' + spoken[0]) : (left ? spoken[0] + ' and above' : 'greater than ' + spoken[0]);
     if (!prefix && lower.kind === 'infinity' && upper.kind !== 'infinity') return zh ? (right ? '不超过 ' : '小于 ') + spoken[1] : (right ? 'at most ' : 'less than ') + spoken[1];
     if (left && right) return lead + (prefix && !zh ? 'interval from ' : '') + range + (prefix && zh ? ' 的区间' : '');

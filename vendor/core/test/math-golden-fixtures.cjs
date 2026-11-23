@@ -9,7 +9,7 @@ const cases = [
   { name: 'tuple of functions', formula: '(f(x),g(x))', options: { academicFunctionStyle: 'compact' }, expected: 'f x, g x' },
   { name: 'closed interval', formula: String.raw`x\in[0,\overline b]`, expected: 'x belongs to the interval from 0 to b bar' },
   { name: 'range only', formula: String.raw`x\in(0,1]`, options: { academicIntervalStyle: 'range' }, expected: 'x belongs to 0 to 1' },
-  { name: 'precise endpoints', formula: String.raw`x\in(0,1]`, expected: 'x belongs to the interval from 0 to 1, excluding 0, including 1' },
+  { name: 'precise endpoints', formula: String.raw`x\in(0,1]`, options: { academicIntervalStyle: 'precise' }, expected: 'x belongs to the interval from 0 to 1, excluding 0, including 1' },
   { name: 'short percentage', formula: String.raw`\alpha=5\%`, expected: 'alpha equals 5 percent' },
   { name: 'Greek product', formula: String.raw`B\tau`, expected: 'B times tau' },
   { name: 'statistic expression', formula: String.raw`\operatorname{Var}(x)`, expected: 'variance of x' },

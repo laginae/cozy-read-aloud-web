@@ -46,6 +46,7 @@ import {
   readFile,
   renderPdf,
   viewportRectangle,
+  outlineTarget,
 } from "./documents.js";
 const icons = {
   Languages,
@@ -213,7 +214,7 @@ function renderOutline() {
     button.title = entry.title;
     button.dataset.outlineBlock = entry.block;
     button.addEventListener("click", () => {
-      locate(entry.el);
+      locate(outlineTarget(entry));
       closeSidebar();
     });
     const play = iconButton(

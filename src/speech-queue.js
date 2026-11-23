@@ -46,7 +46,7 @@ export function queueBlocks(doc, blocks, settings) {
     }
     if (block.pageData && settings.academic) {
       const p = block.pageData;
-      if (!pageOptions.has(p)) pageOptions.set(p, { ...p, mathChanges: pdfMath.pdfMathChanges(p.layout, p.items, options, p.fonts) });
+      if (!pageOptions.has(p)) pageOptions.set(p, { ...p, mathChanges: pdfMath.pdfMathChanges(p.layout, p.items, options, p.fonts, undefined, p.bars) });
       raw = pdfSpeech.preparePdfSpeech(raw, pageOptions.get(p));
     }
     const clean = speechText.sanitizeAcademicTextForSpeech(raw, options);

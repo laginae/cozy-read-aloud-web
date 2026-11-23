@@ -4,6 +4,9 @@ import core from "@laginae/note-reader-core";
 import speechText from "../vendor/mobile/speech-text.js";
 import chunker from "../vendor/mobile/sentence-chunker.js";
 import pdfMath from "../vendor/mobile/pdf-speech/pdf-math.js";
+import pdfBars from "../vendor/mobile/pdf-speech/pdf-math-bars.js";
+import { inferPdfChapters } from "./pdf-chapters.js";
+export { outlineTarget } from "./pdf-chapters.js";
 import { mapPdfItems, selectedPdfBlocks, singleItemLayout } from "./pdf-selection.js";
 import { formulaOptions, queueBlocks } from "./speech-queue.js";
 import { readTableData, rangeReadingText } from './table-data.js';
@@ -212,7 +215,7 @@ export async function readFile(file, signal, onprogress = () => {}, onpreview = 
       file.name,
       ["html", "htm"].includes(ext) ? "html" : ext === "txt" ? "txt" : "md",
     );
-  const { getDocument, TextLayer } = await awaitActive(signal, loadPdfRuntime);
+  const { getDocument, TextLayer, OPS } = await awaitActive(signal, loadPdfRuntime);
   const bytes = await awaitActive(signal, () => file.arrayBuffer());
   throwIfAborted(signal);
   const task = getDocument({
@@ -267,13 +270,20 @@ export async function readFile(file, signal, onprogress = () => {}, onpreview = 
         viewport = page.getViewport({ scale: 1 });
       characters = countPdfText(content.items, characters);
       const layout = pdfFootnotes.markFootnotes(singleItemLayout(core.extractPdfTextLayout(content.items, { viewport }), content.items), content.items, viewport, number);
+      let bars;
+      if (OPS && page.getOperatorList && content.items.some(i=>/[\u{1d400}-\u{1d7ff}]/u.test(i.str))) {
+        try { bars=pdfBars.pdfBarOffsets(content.items,await awaitActive(signal,()=>page.getOperatorList()),OPS); }
+        catch(error) { if (error.name==='AbortError') throw error; }
+      }
       const fonts = pdfMath.pdfFontNames(page, content.items);
       const pageData = {
         pageNumber: number,
+        sourceViewport:viewport,
         text: layout.text,
         layout,
         items: content.items,
         fonts,
+        bars,
         edgeCandidates: pdfHeaders.edgeCandidates(layout, content.items, viewport),
       };
       doc.pages.push(pageData);
@@ -359,6 +369,7 @@ export async function readFile(file, signal, onprogress = () => {}, onpreview = 
     if (!doc.blocks.some((b) => b.raw.trim()))
       throw new Error("此 PDF 没有可提取文字，可能需要先进行 OCR。");
     const bookmarks = await awaitActive(signal, () => pdf.getOutline());
+    let hasBookmarks=false;
     if (bookmarks?.length) {
       const items = [];
       const visit = async (nodes, level = 1) => {
@@ -394,8 +405,9 @@ export async function readFile(file, signal, onprogress = () => {}, onpreview = 
         }
       };
       await visit(bookmarks);
-      if (items.length) doc.outline = items;
+      if (items.length) { doc.outline = items; hasBookmarks=true; }
     }
+    if(!hasBookmarks){const inferred=inferPdfChapters(doc);if(inferred.length)doc.outline=inferred;}
     const repeated = pdfHeaders.recurringEdges(doc.pages);
     for (const page of doc.pages) {
       const filtered = pdfHeaders.filterPageHeaders(page, repeated);

@@ -1,6 +1,6 @@
 'use strict';
 
-const { academicOptions, academicLatex, citations, skipTable, omission } = require('./academic-speech');
+const { academicOptions, academicLatex, citations, skipTable, numericCell, omission } = require('./academic-speech');
 
 const DEFAULT_CHUNK_LIMITS = [40, 80, 120, 160, 280, 320];
 const DEFAULT_ONLINE_CHUNK_LIMITS = [200, 400, 800];
@@ -138,9 +138,9 @@ function isMarkdownTableDelimiterLine(line) {
 
 function formatMarkdownTableForSpeech(headers, rows, options = {}) {
   const tableText = headers.concat(...rows).join(' ');
-  if (options.academicTableMode && skipTable(headers, rows, options)) return omission('table', options, tableText);
+  if ((options.academicTableMode || options.readingProfile) && skipTable(headers, rows, options)) return omission('table', options, tableText);
   const useChineseLabels = /[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]/.test(tableText);
-  const repeatHeaders = options.academicTableRepeatHeaders !== false;
+  const { academicTableRepeatHeaders: repeatHeaders, academicTableAdaptiveHeaders: adaptive } = academicOptions(options);
   const output = [];
   const headerLabels = headers.map((header, index) => String(header ?? '').trim()
     || (!repeatHeaders ? (useChineseLabels ? `第 ${index + 1} 列` : `Column ${index + 1}`) : '')).filter(Boolean);
@@ -151,6 +151,7 @@ function formatMarkdownTableForSpeech(headers, rows, options = {}) {
 
   rows.forEach((cells, rowIndex) => {
     const values = [];
+    const labelNumbers = adaptive && cells.filter(numericCell).length >= 2;
     const cellCount = Math.max(headers.length, cells.length);
     for (let cellIndex = 0; cellIndex < cellCount; cellIndex += 1) {
       const cell = String(cells[cellIndex] ?? '').trim();
@@ -159,7 +160,7 @@ function formatMarkdownTableForSpeech(headers, rows, options = {}) {
         continue;
       }
       const header = String(headers[cellIndex] ?? '').trim();
-      values.push(repeatHeaders && header ? `${header}: ${cell}` : cell);
+      values.push(header && (repeatHeaders || (labelNumbers && numericCell(cell))) ? `${header}: ${cell}` : cell);
     }
 
     if (values.length) {
@@ -262,7 +263,9 @@ function sanitizeTextForSpeech(text, options = {}) {
   value = value.replace(/\[\[([^\]]+)\]\]/g, '$1');
   value = options.academicCitations === true ? citations(value) : verbalizeNumericCitationsForSpeech(value);
   value = value.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
-  value = sanitizeMarkdownTablesForSpeech(value, options);
+  // The older unprofiled plain-text API retains its historical table output.
+  value = sanitizeMarkdownTablesForSpeech(value, options.academicTableMode || options.readingProfile || typeof options.academicTableRepeatHeaders === 'boolean'
+    ? options : { ...options, academicTableRepeatHeaders: true });
   value = value.replace(/`([^`]+)`/g, '$1');
   value = value.replace(/<[^>]+>/g, ' ');
   value = value.replace(/^\s{0,3}#{1,6}\s+/gm, '');
@@ -286,7 +289,7 @@ function sanitizeTextForSpeech(text, options = {}) {
 function sanitizeLatexForSpeech(text, options = {}) {
   let value = normalizeLineBreaks(text);
   const mathReadingLanguage = normalizeMathReadingLanguage(options.mathReadingLanguage);
-  if (options.academicMathMode || options.academicMathStyle) {
+  if (options.readingProfile || options.academicMathMode || options.academicMathStyle) {
     return verbalizeLatexCommands(academicLatex(value, options), mathReadingLanguage);
   }
 
